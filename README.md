@@ -10,6 +10,7 @@
 ## Project documents
 
 - CHANGELOG.md — 仓库专用的变更记录与策略调整文档（新增，用于替代将变更历史写入 README）。
+- TECH_STACK.md — 技术栈选型记录与决策历史（包含 AI 建议与用户偏好说明）。
 - plan.md — 实施计划与分批规则。
 - AI_MODEL_POLICY.md — AI 模型调用与权限放开策略。
 - SETUP.md — 本地与容器化启动说明。
