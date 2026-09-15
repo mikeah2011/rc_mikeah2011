@@ -36,8 +36,12 @@ class NotificationService
                 'body' => $data['body'] ?? null,
                 'status' => 'pending',
                 'delivery_round' => 1,
-                'channel' => $data['channel'] ?? 'http',
             ];
+
+            // Only set channel if the column exists (keeps compatibility with fresh test DBs)
+            if (\Illuminate\Support\Facades\Schema::hasColumn('notifications', 'channel')) {
+                $payload['channel'] = $data['channel'] ?? 'http';
+            }
 
             $notification = $this->repo->create($payload);
 
