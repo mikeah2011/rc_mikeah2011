@@ -45,7 +45,23 @@ class NotificationService
 
             $notification = $this->repo->create($payload);
 
-            DeliverNotification::dispatch($notification->id);
+            // If outbox transactional dispatch is enabled, write an outbox row instead of dispatching directly.
+            if (config('notifications.use_outbox', true)) {
+                // create outbox entry; target_id null for legacy single-target path
+                \App\Models\Outbox::create([
+                    'notification_id' => $notification->id,
+                    'target_id' => null,
+                    'payload' => [
+                        'action' => 'deliver_notification',
+                        'notification_id' => $notification->id,
+                    ],
+                    'available_at' => now(),
+                ]);
+
+                // Note: outbox:flush should be run (cron/supervisor) or called via scheduler/worker
+            } else {
+                DeliverNotification::dispatch($notification->id);
+            }
 
             return ['status' => 'created', 'notification' => $notification];
         });
