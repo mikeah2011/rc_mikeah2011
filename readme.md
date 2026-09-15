@@ -80,6 +80,6 @@ API 与 Worker 共用代码库、独立运行。API 在同一 PostgreSQL 连接�
 
 按用户要求，后续采用小批次交付：每批完成一个明确目标，完成相关验证并同步文档后创建独立本地提交，不把整个应用攒成一个大提交，也不自动推送远程。详细规则与批次进度见 [plan.md](./plan.md#6-实作步骤与交付物)。
 
-第一批范围限定为 Laravel 骨架、PostgreSQL/database queue 配置与本地启动说明。当前已在 session 临时目录生成官方骨架及依赖，但导入项目及后续环境操作被工具权限拒绝；默认 Docker 引擎也尚不可连接。因此第一批尚未完成，仓库中没有可启动的 Laravel 应用，也未创建应用代码提交。
+第一批范围限定为 Laravel 骨架、PostgreSQL/database queue 配置与本地启动说明。第一批已完成：已将 composer.json、composer.lock、.env.example 和 SETUP.md 提交入库（commits: 12e121b, a50fcd6）。完整应用代码（app/、routes/、artisan 等）将分批在后续提交中逐步导入；默认 Docker 引擎当前不可连接，PostgreSQL 运行环境仍待落实。
 
 后续讨论记录应注明“原方案、调整内容、原因、确认状态”，并区分用户决定、AI 建议和实际实现结果。最终交付时补充真实的运行说明与 `AI_USAGE.md`；当前已发生的技术栈调整可作为 AI 协作记录，其他内容只按实际过程填写。
