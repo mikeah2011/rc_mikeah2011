@@ -20,7 +20,7 @@ class DeliverNotification implements ShouldQueue
     /**
      * Ensure job is dispatched only after DB transaction commits
      */
-    public bool $afterCommit = true;
+    public $afterCommit = true;
 
     public string $notificationId;
 
