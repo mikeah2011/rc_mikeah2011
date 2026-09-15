@@ -140,7 +140,7 @@ Laravel Queue Worker ── HTTP(S) ──► 外部供应商
 
 ### 当前批次进度
 
-第一批已完成：本地仓库已加入 Laravel 骨架相关元数据（composer.json、composer.lock）、环境示例 `.env.example` 与本地启动说明 `SETUP.md`。这些文件作为第一批提交入库（commits: 12e121b, a50fcd6），完整应用代码（app/、routes/、artisan 等）将分批在后续提交中逐步导入。默认 Docker 引擎当前不可连接，PostgreSQL 运行环境仍待落实；后续批次会在有权限时导入更多代码与迁移。
+第一批已完成：本地仓库已加入 Laravel 骨架相关元数据（composer.json、composer.lock）、环境示例 `.env.example` 与本地启动说明 `documents/SETUP.md`。这些文件作为第一批提交入库（commits: 12e121b, a50fcd6），完整应用代码（app/、routes/、artisan 等）将分批在后续提交中逐步导入。默认 Docker 引擎当前不可连接，PostgreSQL 运行环境仍待落实；后续批次会在有权限时导入更多代码与迁移。
 
 | 步骤 | 实作内容 | 完成标准 |
 |---|---|---|

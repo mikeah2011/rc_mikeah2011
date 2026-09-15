@@ -30,14 +30,14 @@
   docker compose exec app php artisan migrate --force
   docker compose exec app php artisan test --testsuite=Feature
 
-详细步骤见 SETUP.md。
+详细步骤见 documents/SETUP.md。
 
 ## 文档索引
-- CHANGELOG.md — 仓库专用的变更记录与策略调整文档。
-- TECH_STACK.md — 技术栈选型记录与决策历史。
-- plan.md — 实施计划与分批规则。
-- AI_MODEL_POLICY.md — AI 模型调用与权限放开策略。
-- SETUP.md — 本地与容器化启动说明。
+- documents/CHANGELOG.md — 仓库专用的变更记录与策略调整文档。
+- documents/TECH_STACK.md — 技术栈选型记录与决策历史。
+- documents/plan.md — 实施计划与分批规则。
+- documents/AI_MODEL_POLICY.md — AI 模型调用与权限放开策略。
+- documents/SETUP.md — 本地与容器化启动说明。
 
 ## 开发与分批规则（摘要）
 - 以小批次提交为原则：每批包含实现、迁移、测试与文档，避免一次性大包提交。

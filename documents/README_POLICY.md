@@ -4,9 +4,9 @@
 
 规则：
 1. 内容范围
-   - 必须包含：项目简介、MVP 范围、快速启动步骤（dev 与 container）、主要 API 列表、关键文档索引（CHANGELOG.md、plan.md、TECH_STACK.md、AI_MODEL_POLICY.md、SETUP.md）、许可证与贡献入门。
+   - 必须包含：项目简介、MVP 范围、快速启动步骤（dev 与 container）、主要 API 列表、关键文档索引（documents/CHANGELOG.md、documents/plan.md、documents/TECH_STACK.md、documents/AI_MODEL_POLICY.md、documents/SETUP.md）、许可证与贡献入门。
    - 不应包含：详细的决策记录（commit 级别历史）、长篇第三方文档复制粘贴、或过长的背景讨论。
-   - 深度内容（变更历史、策略讨论、AI 建议记录）应放在专门文档（CHANGELOG.md、TECH_STACK.md、AI_USAGE.md）中并在 README 中索引。
+   - 深度内容（变更历史、策略讨论、AI 建议记录）应放在专门文档（documents/CHANGELOG.md、documents/TECH_STACK.md、documents/AI_USAGE.md）中并在 README 中索引。
 
 2. 编辑与审阅流程
    - 任何人可以发起 README 修改的 Pull Request（或本地提交），但包含策略/架构变更时必须同时更新相关专用文档并在 CHANGELOG.md 中记录摘要。

@@ -15,9 +15,9 @@
 ## 变更记录（按阶段/批次摘要）
 
 ### 初始文档与策略（批次 0）
-- 新增文件：`plan.md`（实现计划、分批规则、验收标准）。
-- 新增文件：`AI_MODEL_POLICY.md`（模型调用策略与权限放开流程）。
-- 新增文件：`SETUP.md`（本地/容器化开发环境搭建说明）。
+- 新增文件：`documents/plan.md`（实现计划、分批规则、验收标准）。
+- 新增文件：`documents/AI_MODEL_POLICY.md`（模型调用策略与权限放开流程）。
+- 新增文件：`documents/SETUP.md`（本地/容器化开发环境搭建说明）。
 - 目的：把决策与审批流程写入仓库，确保后续自动化或代理化操作按规则执行。
 
 ### 导入 Laravel 骨架元数据（批次 1）
@@ -55,7 +55,7 @@
 
 1. 模型选择与角色分离
    - 讨论阶段（规划/设计）采用更“智能/保守”的模型进行系统规划与变更建议。
-   - 实施阶段可逐步切换到自动模式（Auto），但需按步骤放开权限并记录每次放开决策。详见 `AI_MODEL_POLICY.md`。
+   - 实施阶段可逐步切换到自动模式（Auto），但需按步骤放开权限并记录每次放开决策。详见 `documents/AI_MODEL_POLICY.md`。
 
 2. 分批交付规则（必须在 `plan.md` 中记录并遵守）
    - 每次提交应保持“小批次、可回滚、可验证”的原则。
@@ -69,7 +69,7 @@
 
 ## 恢复/审计指南
 
-- 如果你怀疑 README 中原有变更记录被覆盖，请在仓库中搜索 `plan.md`, `AI_MODEL_POLICY.md`, `SETUP.md` 以获取详细历史。
+- 如果你怀疑 README 中原有变更记录被覆盖，请在仓库中搜索 `documents/plan.md`, `documents/AI_MODEL_POLICY.md`, `documents/SETUP.md` 以获取详细历史。
 - 本文档为当前 authoritative 的变更/策略摘要；更详细的 per-batch 变更（含提交 ID 与日期）请参见 Git 历史。
 
 ---
@@ -81,7 +81,7 @@
 
 ---
 
-文件位置：`/CHANGELOG.md`（本文件）
+文件位置：`/documents/CHANGELOG.md`（本文件）
 相关文件：`plan.md`, `README.md`, `AI_MODEL_POLICY.md`, `SETUP.md`
 
 最后更新：2026-09-15 11:31:20 +08:00

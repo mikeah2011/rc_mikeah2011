@@ -7,7 +7,7 @@
 - 原因：复用 Laravel 内置的队列、HTTP 客户端、验证、迁移与测试设施，降低实现复杂度与工程风险；坚持用户对 PHP/Laravel 的偏好，并避免为作业引入不熟悉的新框架。
 
 ## 变更历史与来源
-- 初始讨论中 Copilot/AI 曾建议 Python/FastAPI（或其他轻量框架），但用户明确偏好 PHP/Laravel。该偏好已被记录并成为最终决策基础（参见 plan.md 与 CHANGELOG.md）。
+- 初始讨论中 Copilot/AI 曾建议 Python/FastAPI（或其他轻量框架），但用户明确偏好 PHP/Laravel。该偏好已被记录并成为最终决策基础（参见 documents/plan.md 与 documents/CHANGELOG.md）。
 - 相关提交与文档：
   - 1d3a415 — docs: distinguish system name from minimum viable implementation
   - 5c70991 — docs: add AI model & permission policy
@@ -30,7 +30,7 @@
   - 引入新语言/框架会增加实现与交付时间、并增加运维迁移成本；MVP 的目标是尽快、可验证地交付可靠投递能力，故优先选择熟悉且内置支持较多的 Laravel。
   - 若未来业务需要大量并发或更复杂的异步模型，可评估外部队列或专门的异步服务（届时再考虑语言或框架替换）。
 
-## 与 AI 建议的处理规范（摘自 AI_MODEL_POLICY.md / plan.md）
+## 与 AI 建议的处理规范（摘自 documents/AI_MODEL_POLICY.md / documents/plan.md）
 - 记录所有重要 AI 建议并标注“采纳/未采纳/部分采纳”与理由。AI 的替代建议不得自动覆盖用户偏好或项目决策；任何导致架构改变的采纳都需人工批准并在本文件和 CHANGELOG.md 记录。
 - 讨论/设计阶段使用更强模型（例如 gpt-6-astra）进行方案生成与权衡；实现阶段优先使用更节约资源的模型，且对自动提交行为实行逐步放开策略。
 
