@@ -1,3 +1,4 @@
+<a id="docs_index"></a>
 # 文档索引
 
 - 仓库顶层 README： [../README.md](../README.md)
