@@ -19,13 +19,15 @@ class DeliverNotification implements ShouldQueue
 
     /**
      * Ensure job is dispatched only after DB transaction commits
+     * (Queueable trait declares the property; we set it in constructor to avoid composition conflicts)
      */
-    protected $afterCommit = true;
+    public $afterCommit;
 
     public string $notificationId;
 
     public function __construct(string $notificationId)
     {
+        $this->afterCommit = true;
         $this->notificationId = $notificationId;
     }
 
