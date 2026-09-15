@@ -42,7 +42,7 @@
 └── README.md                                 # 项目总览、快速开始与文档索引
 ```
 
-文档索引（快速链接）：
+## 文档索引
 - [SA/SD](documents/SA_SD.md#sa_sd) — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
 - [PLAN](documents/PLAN.md#plan) — 实施计划与分批规则（验收标准、分批边界）。
 - [CHANGELOG](documents/CHANGELOG.md#changelog) — 按批次记录的变更与策略调整。
