@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateNotificationRequest;
 use App\Services\NotificationService;
+use App\Support\ApiResponse;
+use App\Http\Resources\NotificationResource;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController
@@ -25,11 +27,11 @@ class NotificationController
 
         if ($result['status'] === 'exists') {
             $n = $result['notification'];
-            return response()->json(['id' => $n->id, 'status' => $n->status], 200);
+            return ApiResponse::success(new NotificationResource($n), [], 200);
         }
 
         $n = $result['notification'];
-        return response()->json(['id' => $n->id, 'status' => 'accepted'], 202);
+        return ApiResponse::success(new NotificationResource($n), [], 202);
     }
 
     public function retry(string $id): JsonResponse
@@ -37,14 +39,14 @@ class NotificationController
         $result = $this->service->retryNotification($id);
 
         if ($result['status'] === 'not_found') {
-            return response()->json(['error' => 'notification not found'], 404);
+            return ApiResponse::error('notification not found', 404, [], 404);
         }
 
         if ($result['status'] === 'invalid_state') {
-            return response()->json(['error' => 'only failed notifications can be retried'], 409);
+            return ApiResponse::error('only failed notifications can be retried', 409, [], 409);
         }
 
         $n = $result['notification'];
-        return response()->json(['id' => $n->id, 'status' => 'accepted', 'delivery_round' => $n->delivery_round], 202);
+        return ApiResponse::success(new NotificationResource($n), [], 202);
     }
 }

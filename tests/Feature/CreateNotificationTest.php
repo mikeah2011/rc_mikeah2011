@@ -20,6 +20,6 @@ class CreateNotificationTest extends TestCase
 
         $this->postJson('/api/notifications', $payload)
             ->assertStatus(202)
-            ->assertJsonStructure(['id', 'status']);
+            ->assertJsonStructure(['data' => ['id', 'status']]);
     }
 }

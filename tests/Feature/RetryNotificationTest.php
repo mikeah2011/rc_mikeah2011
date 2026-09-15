@@ -29,7 +29,7 @@ class RetryNotificationTest extends TestCase
         $response = $this->postJson("/api/notifications/{$notification->id}/retry");
 
         $response->assertStatus(202);
-        $response->assertJsonPath('id', $notification->id);
+        $response->assertJsonPath('data.id', $notification->id);
         $this->assertDatabaseHas('notifications', [
             'id' => $notification->id,
             'status' => 'pending',
