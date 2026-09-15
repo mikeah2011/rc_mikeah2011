@@ -55,17 +55,22 @@
 ```
 
 ## 文档索引
-- [SA/SD](documents/SA_SD.md#sa_sd) — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
-- [OUTBOX_BROKER](documents/OUTBOX_BROKER.md#) — Outbox + Broker 组合方案实现与运维建议（Redis/Horizon 默认）。
-- [PLAN](documents/PLAN.md#plan) — 实施计划与分批规则（验收标准、分批边界）。
-- [CHANGELOG](documents/CHANGELOG.md#changelog) — 按批次记录的变更与策略调整。
-- [TECH_STACK](documents/TECH_STACK.md#tech_stack) — 技术栈选型记录与决策历史。
-- [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md#ai_model_policy) — AI 模型调用与权限放开策略。
-- [AI 使用说明](documents/AI_USAGE.md#ai_usage) — 由 AI 参与的工作与审计记录格式。
-- [SETUP](documents/SETUP.md#setup) — 本地与容器化启动说明。
-- [README 调整策略](documents/README_POLICY.md#readme_policy) — README 维护规则与流程。
-- [OPENAPI (规范)](documents/OPENAPI.yaml) — OpenAPI v3 规范草案（可导出为 Swagger UI）。
-- [AI_Coding_Assignment.pdf](documents/AI_Coding_Assignment.pdf) — 课程/作业说明文档。
+- 文档总览（入口）： [documents/README.md](documents/README.md)
+- 核心文档：
+  - [SA/SD](documents/SA_SD.md#sa_sd) — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
+  - [OUTBOX_BROKER](documents/OUTBOX_BROKER.md#) — Outbox + Broker 组合方案实现与运维建议（Redis/Horizon 默认）。
+  - [FEATURES](documents/FEATURES.md#) — 主要功能与开发摘要（产品/PO 友好）。
+  - [DIRECTORY](documents/DIRECTORY.md#) — 仓库目录补充说明（开发者快速定位）。
+- 操作与部署：
+  - [SETUP](documents/SETUP.md#setup) — 本地与容器化启动说明。
+- 其他：
+  - [PLAN](documents/PLAN.md#plan) — 实施计划与分批规则（验收标准、分批边界）。
+  - [CHANGELOG](documents/CHANGELOG.md#changelog) — 按批次记录的变更与策略调整。
+  - [TECH_STACK](documents/TECH_STACK.md#tech_stack) — 技术栈选型记录与决策历史。
+  - [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md#ai_model_policy) — AI 模型调用与权限放开策略。
+  - [AI 使用说明](documents/AI_USAGE.md#ai_usage) — 由 AI 参与的工作与审计记录格式。
+  - [OPENAPI (规范)](documents/OPENAPI.yaml) — OpenAPI v3 规范草案（可导出为 Swagger UI）。
+  - [AI_Coding_Assignment.pdf](documents/AI_Coding_Assignment.pdf) — 课程/作业说明文档。
 
 每个目录的补充说明：
 - app/Http/Controllers/NotificationController.php
@@ -113,21 +118,43 @@
 - 替代方案：若吞吐极高，考虑 RabbitMQ（publisher-confirm）、Kafka（producer transactions/CDC）或 SQS，将负担从主 DB 转移到消息平台；建议路线为先用 Outbox+Redis（快速部署、保证一致性），再根据负载迁移到更重型平台。
 
 ## 快速开始（开发/验证，SQLite）
-1. 复制环境示例并生成应用密钥：
-   cp .env.example .env
-   php artisan key:generate
-2. 切换到 SQLite（可编辑 .env）：
-   DB_CONNECTION=sqlite
-   DB_DATABASE=database/database.sqlite
-   touch database/database.sqlite
-3. 安装依赖并运行迁移：
-   composer install --no-interaction
-   php artisan migrate --force
 
-   注意：默认启用 Outbox（config('notifications.use_outbox') = true）。若启用 Outbox，请定期运行或调度 artisan outbox:flush（示例：php artisan outbox:flush --limit=100）以把 outbox 条目转成队列任务；生产上建议使用 scheduler 或 supervisor 进行短间隔调度。
+1. 复制环境示例并生成应用密钥：
+
+```
+cp .env.example .env
+composer install --no-interaction
+php artisan key:generate
+```
+
+2. 使用 SQLite（快速验证，无需 PostgreSQL）：
+
+```
+# 编辑 .env：
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+# 创建数据库文件并运行迁移
+touch database/database.sqlite
+php artisan migrate --force
+php artisan serve
+```
+
+3. 安装依赖并运行迁移（生产/完整示例）：
+
+```
+composer install --no-interaction
+php artisan migrate --force
+```
+
+注意：
+- 默认启用 Outbox（config('notifications.use_outbox') = true）。若启用 Outbox，请定期运行或调度 artisan outbox:flush（示例：php artisan outbox:flush --limit=100）以把 outbox 条目转成队列任务；生产上建议使用 scheduler 或 supervisor 进行短间隔调度。
+- 详尽启动步骤、容器化示例与迁移命令请查看 documents/SETUP.md
 
 4. 运行 Feature 测试（示例）：
-   php artisan test --testsuite=Feature
+
+```
+php artisan test --testsuite=Feature
+```
 
 ## 容器化（可选）
 仓库包含 docker-compose.yml 和 Dockerfile，可在有 Docker 环境的机器上用以下命令启动：
@@ -145,7 +172,7 @@
 - 敏感操作（生产发布、远程推送）需人工批准，详见 AI_MODEL_POLICY.md 与 plan.md。
 
 ## 联系与贡献
-- 维护者：项目作者（本地仓库 rc_mikeah2011）。
+- 维护者：mikeah2011
 - 提交规范：请遵循仓库中的分批实现规则；不提交敏感凭据或 vendor 目录。
 
 ## 许可证
