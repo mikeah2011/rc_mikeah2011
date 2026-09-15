@@ -49,3 +49,11 @@
 - Per-target job: app/Jobs/DeliverTargetNotification.php
 
 备注：已保证测试环境兼容性（在不存在 channel 列的旧测试 DB 中仍能运行）。如需将 outbox 强制写为带 target_id 的单元，请确认通知模型是否先写 targets 并回填 target_id（事务内）。
+
+简短结论（供快速参考）
+
+- 为何用 Outbox：解决「DB 写入 与 消息发布」的原子性/一致性问题，能防止事务提交后消息丢失或消息先发后 DB 写失败的双写风险。
+- 代价：把写负担加到 DB，会出现 outbox 堆积、索引/存储和扫描压力。
+- 应对积压/丢失/DB 压力的实操措施：批量 insert targets/outbox（Eloquent::insert 或 raw insert）；给 outbox 建索引并按 available_at 分页查询（limit）；短事务；并发 flush worker 扩容；设 DLQ 和重试计数；监控（outbox 未处理数、队列深度、DB I/O）。必要时将 outbox 表拆库/分区或迁移到专用写库。
+- 替代方案：RabbitMQ（publisher-confirm）或 Kafka（producer transactions／CDC）能把负担从主 DB 转移到消息平台，适合超大吞吐。建议路线：先用 Outbox+Redis（保证一致性、部署简单）；当吞吐/延迟成为瓶颈，再迁移到 Kafka/CDC 或 RabbitMQ 并把 outbox 作为临时/回退机制。
+
