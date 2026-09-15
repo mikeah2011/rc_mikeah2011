@@ -11,6 +11,30 @@
 
 > 说明：MVP 在本项目语境中表示“最小可行实现（Minimum Viable Implementation）”，不是系统名称。
 
+## [0.2.0] - 2026-09-15
+
+### Added
+- 增加 Outbox 到持久化 database queue 的发布闭环，并通过 Laravel Scheduler 定时运行 `outbox:flush`。
+- 增加按投递轮次、状态和共享锁进行的队列投递保护。
+- 增加 HTTP 通知可靠性回归测试，覆盖入队失败、事务回滚、重试、`Retry-After`、原始 Body、重复任务和人工重投。
+- 增加面向需求评审的 SA/SD、启动说明、OpenAPI 草案和运行边界说明。
+
+### Changed
+- 默认运行模式明确为 Outbox + database queue，不再把 Redis/Horizon 作为第一版必需组件。
+- 统一创建通知和人工重投的投递调度逻辑，并携带 `delivery_round` 防止旧任务覆盖新轮次。
+- 保留原始字符串 Body，HTTP 客户端不自动跟随重定向；临时错误采用有限退避重试，永久错误进入 `failed`。
+- 将 Compose 拆分为 API、Worker、Scheduler 和 PostgreSQL 开发服务，并补充初始化顺序。
+
+### Fixed
+- 修复先标记 Outbox 已处理、后异步发布可能造成的漏投窗口。
+- 修复临时 HTTP 失败只保存 `next_attempt_at` 却没有重新释放队列任务的问题。
+- 修复旧 Job 吞掉异常、不同幂等请求内容未返回冲突，以及无效 Outbox 记录阻塞有效记录的问题。
+
+### Known limitations
+- 当前语义是允许重复的有限重试，不保证外部业务恰好执行一次。
+- 调用方鉴权、完整 SSRF/出口限制、监控对账、独立 DLQ 和真实生产 Broker 演练尚未完成。
+- 当前只支持单请求、单 HTTP 目标；非空 `target_id` 不会被静默当作父通知目标投递。
+
 ---
 
 ## 变更记录（按阶段/批次摘要）

@@ -16,6 +16,7 @@
   - [SETUP](./SETUP.md#setup) — 本地与容器化启动说明。
 
 - 其他：
+  - [Release Notes](../RELEASES.md) — 面向使用者的版本发布说明。
   - [PLAN](./PLAN.md#plan) — 实施计划与分批规则（验收标准、分批边界）。
   - [CHANGELOG](./CHANGELOG.md#changelog) — 按批次记录的变更与策略调整。
   - [TECH_STACK](./TECH_STACK.md#tech_stack) — 技术栈选型记录与决策历史。
