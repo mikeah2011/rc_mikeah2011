@@ -17,6 +17,11 @@ class DeliverNotification implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /**
+     * Ensure job is dispatched only after DB transaction commits
+     */
+    public bool $afterCommit = true;
+
     public string $notificationId;
 
     public function __construct(string $notificationId)
