@@ -39,6 +39,7 @@
 ## 数据与伸缩建议
 - 本地/开发：SQLite 足够验证行为。
 - 生产：推荐 PostgreSQL（支持事务+入队一致性），队列使用数据库或 Redis（根据吞吐与可见性需求）。
+- 高吞吐/可靠性建议：采用 Broker + Outbox 组合（推荐 Redis + Outbox，或 RabbitMQ/Kafka/SQS 视需求）。详见 documents/OUTBOX_BROKER.md。
 
 ## 监控与运维
 - 指标：attempts_total, attempts_failed, attempts_succeeded, queue_job_duration, queue_depth。
