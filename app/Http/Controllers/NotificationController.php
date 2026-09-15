@@ -26,12 +26,12 @@ class NotificationController
         $result = $this->service->createNotification($data, $clientId, $idempotencyKey);
 
         if ($result['status'] === 'exists') {
-            $n = $result['notification'];
-            return ApiResponse::ok(new NotificationResource($n));
+            $notification = $result['notification'];
+            return ApiResponse::ok(new NotificationResource($notification));
         }
 
-        $n = $result['notification'];
-        return ApiResponse::accepted(new NotificationResource($n));
+        $notification = $result['notification'];
+        return ApiResponse::accepted(new NotificationResource($notification));
     }
 
     public function retry(string $id): JsonResponse
@@ -46,7 +46,7 @@ class NotificationController
             return ApiResponse::conflict('only failed notifications can be retried');
         }
 
-        $n = $result['notification'];
-        return ApiResponse::success(new NotificationResource($n), [], 202);
+        $notification = $result['notification'];
+        return ApiResponse::accepted(new NotificationResource($notification));
     }
 }
