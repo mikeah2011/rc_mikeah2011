@@ -2,6 +2,9 @@
 
 - 文档总览（入口）： documents/README.md
 
+- 主要参考（已置顶）：
+  - FEATURE_OVERVIEW — 功能说明与目录补充（快速手册，开发者/产品首选入口，documents/FEATURE_OVERVIEW.md）。
+
 - 核心文档：
   - SA/SD — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
   - OUTBOX_BROKER — Outbox + Broker 组合方案实现与运维建议（Redis/Horizon 默认）。
