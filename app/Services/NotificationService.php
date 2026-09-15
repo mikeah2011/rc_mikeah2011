@@ -36,6 +36,7 @@ class NotificationService
                 'body' => $data['body'] ?? null,
                 'status' => 'pending',
                 'delivery_round' => 1,
+                'channel' => $data['channel'] ?? 'http',
             ];
 
             $notification = $this->repo->create($payload);

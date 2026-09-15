@@ -11,7 +11,7 @@ class Notification extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'client_id', 'idempotency_key', 'method', 'url', 'headers', 'body', 'status', 'attempts', 'next_attempt_at', 'delivery_round'
+        'id', 'client_id', 'idempotency_key', 'method', 'url', 'headers', 'body', 'status', 'attempts', 'next_attempt_at', 'delivery_round', 'channel'
     ];
 
     protected $casts = [
@@ -19,6 +19,11 @@ class Notification extends Model
         'next_attempt_at' => 'datetime',
         'delivery_round' => 'integer',
     ];
+
+    public function targets()
+    {
+        return $this->hasMany(\App\Models\NotificationTarget::class);
+    }
 
     protected static function boot(): void
     {
