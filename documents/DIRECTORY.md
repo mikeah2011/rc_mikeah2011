@@ -5,10 +5,11 @@
 
 app/
 - Console/Commands/FlushOutbox.php — artisan 命令：outbox:flush，用于把 outbox 条目转成队列任务。
-- Http/Controllers/NotificationController.php — API 入口：store(), retry()。Controller 仅做验证与授权，委托 Service 层。
-- Jobs/DeliverNotification.php — 旧兼容 Job（委托 ChannelManager）；保留以兼容早期测试。
-- Jobs/DeliverTargetNotification.php — 按 target 投递的 Job（Outbox flush 使用）。
-- Channels/ — ChannelContract, ChannelManager, HttpChannel：多渠道投递抽象层。
+- Http/Controllers/NotificationController.php — API 入口：store(), retry()，委托 Service；调用方鉴权仍待实现。
+- Services/NotificationService.php、NotificationDispatcher.php — 创建/重投事务、共用调度与队列配置约束。
+- Jobs/DeliverNotification.php — 共用投递、轮次隔离、并发锁、队列重试与失败处理。
+- Jobs/DeliverTargetNotification.php — Outbox 使用的旧类名兼容入口；目前仅支持单 HTTP 目标。
+- Channels/ — ChannelContract, ChannelManager, HttpChannel：HTTP 驱动及其抽象，不表示其他渠道已实现。
 - Models/Notification.php, NotificationAttempt.php, NotificationTarget.php — 业务模型，与 Repository 交互。
 - Models/Outbox.php — Outbox 模型（轻量化，记录待转发消息）。
 
@@ -22,11 +23,12 @@ documents/
 - 集中存放 SA/SD、操作指南、实现计划与 OpenAPI 草案；所有面向运维/产品/架构的说明放在此处。
 
 tests/
-- Feature/ 包含关键流程的集成/功能测试（CreateNotificationTest, RetryNotificationTest 等）。
+- Feature/ 包含关键流程的集成/功能测试（DeliveryReliabilityTest、CreateNotificationTest、RetryNotificationTest）。
 
 部署与运维要点
-- Scheduler：推荐在 App\Console\Kernel 中添加 outbox:flush 调度，或用 supervisor 管理短间隔 flush worker。
-- 队列：开发可用 sync/db；生产建议用 redis + horizon 或 rabbitmq 驱动。
+- Scheduler：`routes/console.php` 每分钟调度 `outbox:flush`，运行 `php artisan schedule:work`。
+- 队列：默认 database queue；本服务拒绝 sync 等非持久异步配置。生产队列切换须保留一致性边界。
+- 容器：Compose 包含 API、Worker、Scheduler 和数据库，初始化顺序见 [启动说明](SETUP.md)。
 
 联系方式
 - 维护者：mikeah2011

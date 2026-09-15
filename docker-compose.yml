@@ -1,25 +1,46 @@
-version: '3.8'
+x-runtime: &runtime
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+  working_dir: /var/www/html
+  volumes:
+    - ./:/var/www/html:cached
+  environment:
+    APP_ENV: local
+    APP_DEBUG: 'true'
+    DB_CONNECTION: pgsql
+    DB_HOST: db
+    DB_PORT: '5432'
+    DB_DATABASE: notifications_dev
+    DB_USERNAME: postgres
+    DB_PASSWORD: postgres
+    QUEUE_CONNECTION: database
+    DB_QUEUE_CONNECTION: pgsql
+    DB_QUEUE_RETRY_AFTER: '90'
+    CACHE_STORE: database
+    NOTIFICATIONS_USE_OUTBOX: 'true'
+  depends_on:
+    db:
+      condition: service_healthy
 
 services:
   app:
-    build: ./docker/php
+    <<: *runtime
     container_name: rc_app
-    working_dir: /var/www/html
-    volumes:
-      - ./:/var/www/html:cached
+    command: php artisan serve --host=0.0.0.0 --port=8000
     ports:
-      - "8000:8000" # maps artisan serve (php -S) or app server port
-    environment:
-      APP_ENV: local
-      APP_DEBUG: 'true'
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: '5432'
-      DB_DATABASE: notifications_dev
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-    depends_on:
-      - db
+      - "8000:8000"
+
+  worker:
+    <<: *runtime
+    command: php artisan queue:work database --sleep=1 --tries=100 --timeout=30 --max-time=3600
+    restart: unless-stopped
+    stop_grace_period: 45s
+
+  scheduler:
+    <<: *runtime
+    command: php artisan schedule:work
+    restart: unless-stopped
 
   db:
     image: postgres:15
@@ -32,6 +53,11 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d notifications_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   adminer:
     image: adminer
