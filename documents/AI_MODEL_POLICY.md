@@ -1,3 +1,4 @@
+<a id="ai_model_policy"></a>
 AI 模型与权限使用策略
 
 目的

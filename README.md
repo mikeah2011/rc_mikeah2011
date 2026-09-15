@@ -42,13 +42,16 @@
 └── README.md                                 # 项目总览、快速开始与文档索引
 ```
 
-文档索引：
-- [CHANGELOG](documents/CHANGELOG.md) — 仓库专用的变更记录与策略调整文档。
-- [TECH_STACK](documents/TECH_STACK.md) — 技术栈选型记录与决策历史。
-- [PLAN](documents/PLAN.md) — 实施计划与分批规则。
-- [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md) — AI 模型调用与权限放开策略。
-- [SETUP](documents/SETUP.md) — 本地与容器化启动说明。
-- [AI Coding 作业](documents/AI_Coding_作业.pdf) — 课程/作业说明文档。
+文档索引（快速链接）：
+- [SA/SD](documents/SA_SD.md#sa_sd) — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
+- [PLAN](documents/PLAN.md#plan) — 实施计划与分批规则（验收标准、分批边界）。
+- [CHANGELOG](documents/CHANGELOG.md#changelog) — 按批次记录的变更与策略调整。
+- [TECH_STACK](documents/TECH_STACK.md#tech_stack) — 技术栈选型记录与决策历史。
+- [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md#ai_model_policy) — AI 模型调用与权限放开策略。
+- [AI 使用说明](documents/AI_USAGE.md#ai_usage) — 由 AI 参与的工作与审计记录格式。
+- [SETUP](documents/SETUP.md#setup) — 本地与容器化启动说明。
+- [README 调整策略](documents/README_POLICY.md#readme_policy) — README 维护规则与流程。
+- [AI_Coding_Assignment.pdf](documents/AI_Coding_Assignment.pdf) — 课程/作业说明文档。
 
 每个目录的补充说明：
 - app/Http/Controllers/NotificationController.php
@@ -110,12 +113,15 @@
 详细步骤见 documents/SETUP.md。
 
 ## 文档索引
-- [CHANGELOG](documents/CHANGELOG.md) — 仓库专用的变更记录与策略调整文档.
-- [TECH_STACK](documents/TECH_STACK.md) — 技术栈选型记录与决策历史.
-- [PLAN](documents/PLAN.md) — 实施计划与分批规则.
-- [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md) — AI 模型调用与权限放开策略.
-- [SETUP](documents/SETUP.md) — 本地与容器化启动说明.
-- [AI Coding 作业](documents/AI_Coding_作业.pdf) — 课程/作业说明文档.
+- [SA/SD](documents/SA_SD.md#sa_sd) — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
+- [PLAN](documents/PLAN.md#plan) — 实施计划与分批规则（验收标准、分批边界）。
+- [CHANGELOG](documents/CHANGELOG.md#changelog) — 按批次记录的变更与策略调整。
+- [TECH_STACK](documents/TECH_STACK.md#tech_stack) — 技术栈选型记录与决策历史。
+- [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md#ai_model_policy) — AI 模型调用与权限放开策略。
+- [AI 使用说明](documents/AI_USAGE.md#ai_usage) — 由 AI 参与的工作与审计记录格式。
+- [SETUP](documents/SETUP.md#setup) — 本地与容器化启动说明。
+- [README 调整策略](documents/README_POLICY.md#readme_policy) — README 维护规则与流程。
+- [AI_Coding_Assignment.pdf](documents/AI_Coding_Assignment.pdf) — 课程/作业说明文档。
 
 ## 开发与分批规则（摘要）
 - 以小批次提交为原则：每批包含实现、迁移、测试与文档，避免一次性大包提交。
