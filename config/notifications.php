@@ -15,4 +15,11 @@ return [
 
     // Max jitter seconds to add
     'backoff_jitter_seconds' => env('NOTIFICATIONS_BACKOFF_JITTER', 5),
+
+    // Use transactional outbox pattern. When true, NotificationService writes an outbox row
+    // inside the DB transaction; outbox:flush will convert rows to queue jobs.
+    'use_outbox' => env('NOTIFICATIONS_USE_OUTBOX', true),
+
+    // Default limit used by artisan outbox:flush if not supplied
+    'outbox_flush_limit' => env('OUTBOX_FLUSH_LIMIT', 100),
 ];
