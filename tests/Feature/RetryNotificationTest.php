@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\Notification;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Bus;
 
 class RetryNotificationTest extends TestCase
 {
@@ -12,9 +14,11 @@ class RetryNotificationTest extends TestCase
 
     public function test_can_retry_failed_notification()
     {
+        Bus::fake();
+
         // create a failed notification
         $notification = Notification::create([
-            'id' => (string) '\\Illuminate\\Support\\Str'::uuid(),
+            'id' => (string) Str::uuid(),
             'method' => 'POST',
             'url' => 'https://example.com/webhook',
             'status' => 'failed',
@@ -30,5 +34,7 @@ class RetryNotificationTest extends TestCase
             'id' => $notification->id,
             'status' => 'pending',
         ]);
+
+        Bus::assertDispatched(\App\Jobs\DeliverNotification::class);
     }
 }

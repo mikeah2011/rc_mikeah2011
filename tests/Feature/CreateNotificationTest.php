@@ -11,16 +11,15 @@ class CreateNotificationTest extends TestCase
 
     public function test_can_create_notification()
     {
-         = [
+        $payload = [
             'url' => 'https://example.com/webhook',
             'method' => 'POST',
             'headers' => ['Content-Type' => 'application/json'],
             'body' => json_encode(['hello' => 'world']),
         ];
 
-         = ->postJson('/api/notifications', );
-
-        ->assertStatus(202);
-        ->assertJsonStructure(['id', 'status']);
+        $this->postJson('/api/notifications', $payload)
+            ->assertStatus(202)
+            ->assertJsonStructure(['id', 'status']);
     }
 }

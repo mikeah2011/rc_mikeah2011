@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('notifications', function (Blueprint ) {
-            ->uuid('id')->primary();
-            ->string('client_id')->nullable();
-            ->string('idempotency_key')->nullable()->index();
-            ->string('method', 10);
-            ->text('url');
-            ->json('headers')->nullable();
-            ->text('body')->nullable();
-            ->string('status')->default('pending')->index();
-            ->integer('attempts')->default(0);
-            ->timestamp('last_attempt_at')->nullable();
-            ->timestamp('next_attempt_at')->nullable();
-            ->timestamps();
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('client_id')->nullable();
+            $table->string('idempotency_key')->nullable()->index();
+            $table->string('method', 10);
+            $table->text('url');
+            $table->json('headers')->nullable();
+            $table->text('body')->nullable();
+            $table->string('status')->default('pending')->index();
+            $table->integer('attempts')->default(0);
+            $table->timestamp('last_attempt_at')->nullable();
+            $table->timestamp('next_attempt_at')->nullable();
+            $table->timestamps();
         });
     }
 

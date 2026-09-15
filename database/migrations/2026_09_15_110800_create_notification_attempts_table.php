@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('notification_attempts', function (Blueprint ) {
-            ->bigIncrements('id');
-            ->uuid('notification_id')->index();
-            ->integer('attempt_number')->default(1);
-            ->timestamp('started_at')->nullable();
-            ->timestamp('finished_at')->nullable();
-            ->integer('http_status')->nullable();
-            ->text('error')->nullable();
-            ->integer('duration_ms')->nullable();
-            ->timestamps();
+        Schema::create('notification_attempts', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->uuid('notification_id')->index();
+            $table->integer('attempt_number')->default(1);
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
+            $table->integer('http_status')->nullable();
+            $table->text('error')->nullable();
+            $table->integer('duration_ms')->nullable();
+            $table->timestamps();
         });
     }
 
