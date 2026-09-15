@@ -96,7 +96,7 @@ php artisan migrate --force
 
 注意：
 - 默认启用 Outbox（config('notifications.use_outbox') = true）。若启用 Outbox，请定期运行或调度 artisan outbox:flush（示例：php artisan outbox:flush --limit=100）以把 outbox 条目转成队列任务；生产上建议使用 scheduler 或 supervisor 进行短间隔调度。
-- 详尽启动步骤、容器化示例与迁移命令请查看 documents/SETUP.md
+- 详细步骤见 [documents/SETUP.md](documents/SETUP.md)。
 
 4. 运行 Feature 测试（示例）：
 
@@ -113,13 +113,13 @@ docker compose exec app php artisan migrate --force
 docker compose exec app php artisan test --testsuite=Feature
 ```
 
-详细步骤见 documents/SETUP.md。
+详细步骤见 [documents/SETUP.md](documents/SETUP.md)。
 
 
 ## 开发规则
 - 以小批次提交为原则：每批包含实现、迁移、测试与文档，避免一次性大包提交。
 - 所有会影响运行时或 DB 的变更需包含对应迁移与测试。
-- 敏感操作（生产发布、远程推送）需人工批准，详见 AI_MODEL_POLICY.md 与 plan.md。
+- 敏感操作（生产发布、远程推送）需人工批准，详见 [documents/AI_MODEL_POLICY.md](documents/AI_MODEL_POLICY.md) 与 [documents/PLAN.md](documents/PLAN.md)。
 
 ## 联系与贡献
 - 维护者：mikeah2011
