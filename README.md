@@ -40,15 +40,36 @@
 - [SETUP](documents/SETUP.md) — 本地与容器化启动说明.
 - [AI Coding 作业](documents/AI_Coding_作业.pdf) — 课程/作业说明文档.
 
-## 目录结构（概要）
-- app/ — Laravel 应用代码（Controllers, Models, Jobs, Providers）。
-- config/ — 配置文件（包括 config/notifications.php 用于投递/重试策略）。
-- database/migrations/ — 数据库迁移文件（notifications, notification_attempts, jobs 等）。
-- app/Jobs/ — 异步投递逻辑（DeliverNotification Job 与重试实现）。
-- routes/ — API 路由（routes/api.php 提供创建与人工重投接口）。
-- tests/Feature/ — Feature 测试示例（创建与重投流程）。
-- documents/ — 项目文档目录（PLAN.md, CHANGELOG.md, TECH_STACK.md, SETUP.md 等）。
-- docker-compose.yml, docker/ — 容器化启动文件，用于在有 Docker 的机器上做端到端验证。
+## 目录结构（tree）
+下面以树状结构展示仓库的主要目录与关键文件：
+
+```
+.
+├── app/
+│   ├── Http/Controllers/NotificationController.php    # API 端点逻辑
+│   ├── Jobs/DeliverNotification.php                   # 异步投递与重试实现
+│   └── Models/Notification.php                        # Notification 模型与关系
+├── config/
+│   └── notifications.php                              # 投递/重试策略配置（可调）
+├── database/
+│   └── migrations/                                    # 数据库迁移（notifications, attempts, jobs）
+├── routes/
+│   └── api.php                                        # API 路由（创建、重投）
+├── tests/
+│   └── Feature/                                       # Feature 测试（创建、重投流程）
+├── documents/
+│   ├── PLAN.md
+│   ├── CHANGELOG.md
+│   ├── TECH_STACK.md
+│   ├── AI_Coding_作业.pdf
+│   └── SETUP.md
+├── docker-compose.yml
+├── docker/
+│   └── php/Dockerfile
+└── README.md
+```
+
+上表为快速定位参考；文档目录下的文件可点击访问（见上方“文档索引”）。
 
 ## 主要功能点（更细化）
 - 接收层（API）
