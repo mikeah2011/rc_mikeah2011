@@ -27,11 +27,11 @@ class NotificationController
 
         if ($result['status'] === 'exists') {
             $n = $result['notification'];
-            return ApiResponse::success(new NotificationResource($n), [], 200);
+            return ApiResponse::ok(new NotificationResource($n));
         }
 
         $n = $result['notification'];
-        return ApiResponse::success(new NotificationResource($n), [], 202);
+        return ApiResponse::accepted(new NotificationResource($n));
     }
 
     public function retry(string $id): JsonResponse
