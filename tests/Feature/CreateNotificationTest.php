@@ -11,6 +11,7 @@ class CreateNotificationTest extends TestCase
 
     public function test_can_create_notification()
     {
+        config(['queue.default' => 'database', 'notifications.use_outbox' => true]);
         $payload = [
             'url' => 'https://example.com/webhook',
             'method' => 'POST',

@@ -2,55 +2,30 @@
 
 namespace App\Jobs;
 
-use App\Models\Notification;
-use App\Models\NotificationTarget;
-use App\Channels\ChannelManager;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Throwable;
+use Illuminate\Support\Facades\Log;
 
-class DeliverTargetNotification implements ShouldQueue
+// Keep the old queue payload class readable during upgrades.
+class DeliverTargetNotification extends DeliverNotification
 {
-    use InteractsWithQueue, Queueable, SerializesModels;
+    public ?string $targetId = null;
 
-    public string $notificationId;
-    public ?string $targetId;
-
-    public function __construct(string $notificationId, ?string $targetId = null)
+    public function __construct(string $notificationId, ?string $targetId = null, int $deliveryRound = 1)
     {
-        $this->notificationId = $notificationId;
+        parent::__construct($notificationId, $deliveryRound);
         $this->targetId = $targetId;
-
-        // ensure afterCommit for transaction safety
-        if (property_exists($this, 'afterCommit')) {
-            $this->afterCommit = true;
-        }
     }
 
-    public function handle(ChannelManager $manager)
+    public function handle(): void
     {
-        // load fresh models
-        $notification = Notification::find($this->notificationId);
-        if (! $notification) {
-            return;
+        if ($this->targetId !== null) {
+            Log::error('Non-null notification targets are unsupported', [
+                'notification_id' => $this->notificationId,
+                'target_id' => $this->targetId,
+            ]);
+
+            throw new \InvalidArgumentException('Only single-target HTTP notifications are supported.');
         }
 
-        $target = null;
-        if ($this->targetId) {
-            $target = NotificationTarget::find($this->targetId);
-        }
-
-        $channel = $target?->channel ?? $notification->channel ?? 'http';
-
-        try {
-            $driver = $manager->driver($channel);
-            $driver->send($notification, $target);
-        } catch (Throwable $e) {
-            // Logging handled by channel/driver; allow job retry
-            report($e);
-            throw $e;
-        }
+        parent::handle();
     }
 }

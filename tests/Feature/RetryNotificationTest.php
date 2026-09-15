@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use App\Models\Notification;
+use App\Models\Outbox;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Bus;
+use Tests\TestCase;
 
 class RetryNotificationTest extends TestCase
 {
@@ -14,7 +14,7 @@ class RetryNotificationTest extends TestCase
 
     public function test_can_retry_failed_notification()
     {
-        Bus::fake();
+        config(['queue.default' => 'database', 'notifications.use_outbox' => true]);
 
         // create a failed notification
         $notification = Notification::create([
@@ -35,6 +35,7 @@ class RetryNotificationTest extends TestCase
             'status' => 'pending',
         ]);
 
-        Bus::assertDispatched(\App\Jobs\DeliverNotification::class);
+        $this->assertSame(2, Outbox::firstOrFail()->payload['delivery_round']);
+        $this->assertDatabaseCount('jobs', 0);
     }
 }

@@ -4,6 +4,16 @@ return [
     // HTTP client timeout in seconds for delivery attempts
     'http_timeout' => env('NOTIFICATIONS_HTTP_TIMEOUT', 15),
 
+    'connect_timeout' => env('NOTIFICATIONS_CONNECT_TIMEOUT', 5),
+
+    // Keep connect <= HTTP < job timeout < overlap lock < queue retry_after / SQS visibility.
+    // Workers need pcntl and a shared atomic cache store (database by default).
+    'job_timeout' => env('NOTIFICATIONS_JOB_TIMEOUT', 30),
+    'lock_seconds' => env('NOTIFICATIONS_LOCK_SECONDS', 60),
+
+    // Queue reservations include overlap releases and early due-time checks, not just HTTP attempts.
+    'queue_tries' => env('NOTIFICATIONS_QUEUE_TRIES', 100),
+
     // Max delivery attempts per notification
     'max_attempts' => env('NOTIFICATIONS_MAX_ATTEMPTS', 8),
 

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateNotificationRequest;
-use App\Services\NotificationService;
-use App\Http\Responses\ApiResponse;
 use App\Http\Resources\NotificationResource;
+use App\Http\Responses\ApiResponse;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController
@@ -25,12 +25,18 @@ class NotificationController
 
         $result = $this->service->createNotification($data, $clientId, $idempotencyKey);
 
+        if ($result['status'] === 'conflict') {
+            return ApiResponse::conflict('idempotency key was already used with different request content');
+        }
+
         if ($result['status'] === 'exists') {
             $notification = $result['notification'];
+
             return ApiResponse::ok(new NotificationResource($notification));
         }
 
         $notification = $result['notification'];
+
         return ApiResponse::accepted(new NotificationResource($notification));
     }
 
@@ -47,6 +53,7 @@ class NotificationController
         }
 
         $notification = $result['notification'];
+
         return ApiResponse::accepted(new NotificationResource($notification));
     }
 }

@@ -1,51 +1,40 @@
 <a id="feature_overview"></a>
-# 功能说明与目录补充（快速手册）
+# 功能说明
 
-每个目录的补充说明：
+本项目是内部 HTTP 通知服务：业务系统提交供应商的 URL、Method、Headers 和原始字符串 Body，服务保存后异步投递。广告、CRM、库存等场景使用相同的 HTTP 投递流程。
 
-- app/Http/Controllers/NotificationController.php
-  - store(): 在事务中使用 (client_id, idempotency_key) 确保幂等，写入 notifications 表并 dispatch DeliverNotification Job。
-  - retry(): 对 failed 状态允许人工发起新一轮（delivery_round++），并在事务内重置 attempts/next_attempt_at 后入队。
+## 核心功能
 
-- app/Jobs/DeliverNotification.php
-  - 发送 HTTP 请求（不自动跟随 3xx），2xx 视为成功；对 408/429/5xx 判定为短暂错误并按 Retry-After/指数退避重试；其他 4xx 视为永久失败并记录。
-  - 每次尝试写入 notification_attempts（status_code、response_body、attempted_at）。
+| 功能 | 行为 |
+|---|---|
+| 接收通知 | `POST /api/notifications`；持久化后返回 `202` 和通知 ID，不等待供应商 |
+| 提交去重 | 提供调用方标识和幂等键时，同键同内容返回原记录，不同内容返回 `409`；不替代供应商侧幂等 |
+| 异步投递 | 默认 Outbox + database queue，Scheduler 发布、Worker 消费 |
+| 原始请求 | 保存字符串 Body，保留首尾空白，不按 JSON 二次编码；Headers 由业务方提供 |
+| 有限重试 | 网络异常、`408 / 429 / 5xx` 延迟重试，支持 `Retry-After` 和指数退避 |
+| 最终状态 | `2xx` 为 `delivered`；永久错误或预算耗尽为 `failed`；等待投递/重试为 `pending` |
+| 人工重投 | `POST /api/notifications/{id}/retry`，仅重投失败通知，创建新轮次并保留历史尝试 |
+| 重复与旧任务 | 检查轮次和最新状态，同一通知串行执行；不承诺外部副作用恰好一次 |
+| 尝试记录 | 保存 HTTP 状态、耗时、错误及时间，不向业务方返回完整供应商响应 |
 
-- config/notifications.php（关键配置）
-  - max_attempts: 最大尝试次数（例如 5）
-  - base_delay / base_backoff_seconds: 基线延迟（秒）
-  - backoff_factor: 指数退避因子
-  - jitter / backoff_jitter_seconds: 随机抖动范围
+## 代码定位
 
-- database/migrations
-  - notifications 表重要字段示例：id (UUID), client_id, idempotency_key, target_url, method, headers (JSON), body (JSON/text), status (pending/processing/succeeded/failed), delivery_round, next_attempt_at, created_at, updated_at
-  - notification_attempts 表记录每次 HTTP 调用的返回码与 body，便于人工诊断与回放。
+| 路径 | 职责 |
+|---|---|
+| `app/Http/Controllers/NotificationController.php` | 接收与重投接口响应 |
+| `app/Services/NotificationService.php` | 创建、提交幂等比较、重投事务 |
+| `app/Services/NotificationDispatcher.php` | 共用投递意图写入、队列与超时配置约束 |
+| `app/Console/Commands/FlushOutbox.php` | 有界扫描、先发布后标记 |
+| `app/Jobs/DeliverNotification.php` | 轮次检查、并发互斥、延迟释放与队列失败处理 |
+| `app/Jobs/DeliverTargetNotification.php` | 旧类名兼容入口，非空 target 明确不支持 |
+| `app/Channels/HttpChannel.php` | HTTP 调用、响应分类、重试时间计算 |
+| `routes/console.php` | Laravel Scheduler 定时任务 |
+| `config/notifications.php` | 投递预算、退避、超时与 Outbox 配置 |
 
-- documents/
-  - 将所有策略、变更、计划、AI 使用记录集中管理，便于审计与教学用途。
+## 范围限制
 
-定位建议：
-- 想查看投递实现：打开 app/Jobs/DeliverNotification.php。
-- 想查看入队/幂等策略：查看 app/Http/Controllers/NotificationController.php 与数据库迁移文件。
-- 想修改重试参数：调整 config/notifications.php 并重启 worker。
+目前不包含邮件/短信、多目标广播、供应商签名或 OAuth 刷新、严格事件顺序、完整 Outbox DLQ 和管理后台。状态记录存在数据库中，不应把规划中的查询接口或运维工具当作已经实现。
 
-上面结构已在仓库中实现；如需我把此段内容逐步细化（例如列出每个迁移文件名、Controller 方法签名，或把 notifications 表字段完整列出为表格），告诉我需要的格式，我会继续完善并提交。
+调用方鉴权、SSRF 出口约束、敏感信息保护、并发提交幂等的完整冲突恢复、人工重投请求幂等与生产故障演练仍需后续批次完善，不宜直接面向公网部署。
 
----
-
-# 主要功能（摘要）
-
-- 接收并验证通知请求；支持幂等键以防重复创建（client_id + idempotency_key）。
-- 持久化通知记录与每次投递尝试记录（notifications 与 notification_attempts）。
-- 异步投递：默认建议使用 Redis（Laravel 队列 + Horizon）作为 Broker，并可启用 Outbox 模式保证事务性一致性（参见 documents/OUTBOX_BROKER.md）。
-- 投递实现支持多渠道（ChannelManager + HttpChannel，可扩展 Email/SMS 驱动），Job 按 target 细粒度投递（DeliverTargetNotification）。
-- 重试策略：指数退避、Retry-After 支持、抖动与可配置的最大重试次数（config/notifications.php）。
-- 人工重投：提供 POST /api/notifications/{id}/retry，用于对 failed 状态发起新一轮（delivery_round++）。
-- 可观察性：保存每次尝试的响应码与响应体，便于诊断与回放。
-
-# 简短结论（快速参考）
-
-- 为何用 Outbox：解决“DB 写入 与 消息发布”原子性/一致性问题，能防止事务提交后消息丢失或双写失败的风险。
-- 代价：增加 DB 写入与存储负担，可能导致 outbox 堆积、索引/扫描压力与存储增长。
-- 缓解措施：批量写入 targets/outbox（Eloquent::insert 或 raw insert）；给 outbox 建索引并按 available_at 分页查询（limit）；短事务；并发 flush worker 扩容；设置 DLQ 与重试计数；监控 outbox 未处理数、队列深度与 DB I/O；必要时拆库/分区或迁移到专用写库。
-- 替代方案：若吞吐极高，考虑 RabbitMQ（publisher-confirm）、Kafka（producer transactions/CDC）或 SQS，将负担从主 DB 转移到消息平台；建议路线为先用 Outbox+Redis（快速部署、保证一致性），再根据负载迁移到更重型平台。
+设计依据见 [SA/SD](SA_SD.md)，启动方式见 [SETUP](SETUP.md)，开发安排见 [PLAN](PLAN.md)。

@@ -8,7 +8,7 @@ class NotificationRepository
 {
     public function findByClientAndIdempotency(?string $clientId, ?string $idempotencyKey)
     {
-        if (! $idempotencyKey) {
+        if ($idempotencyKey === null || $idempotencyKey === '') {
             return null;
         }
 

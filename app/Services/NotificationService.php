@@ -2,16 +2,15 @@
 
 namespace App\Services;
 
-use App\Jobs\DeliverNotification;
 use App\Repositories\NotificationRepository;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class NotificationService
 {
     protected NotificationRepository $repo;
 
-    public function __construct(NotificationRepository $repo)
+    public function __construct(NotificationRepository $repo, protected NotificationDispatcher $dispatcher)
     {
         $this->repo = $repo;
     }
@@ -19,10 +18,19 @@ class NotificationService
     public function createNotification(array $data, ?string $clientId, ?string $idempotencyKey)
     {
         return DB::transaction(function () use ($data, $clientId, $idempotencyKey) {
-            if ($idempotencyKey) {
+            if ($idempotencyKey !== null && $idempotencyKey !== '') {
                 $existing = $this->repo->findByClientAndIdempotency($clientId, $idempotencyKey);
                 if ($existing) {
-                    return ['status' => 'exists', 'notification' => $existing];
+                    $existingHeaders = $existing->headers ?? [];
+                    $headers = $data['headers'] ?? [];
+                    ksort($existingHeaders);
+                    ksort($headers);
+                    $same = $existing->method === strtoupper($data['method'])
+                        && $existing->url === $data['url']
+                        && $existingHeaders === $headers
+                        && $existing->body === ($data['body'] ?? null);
+
+                    return ['status' => $same ? 'exists' : 'conflict', 'notification' => $existing];
                 }
             }
 
@@ -38,30 +46,9 @@ class NotificationService
                 'delivery_round' => 1,
             ];
 
-            // Only set channel if the column exists (keeps compatibility with fresh test DBs)
-            if (\Illuminate\Support\Facades\Schema::hasColumn('notifications', 'channel')) {
-                $payload['channel'] = $data['channel'] ?? 'http';
-            }
-
             $notification = $this->repo->create($payload);
 
-            // If outbox transactional dispatch is enabled, write an outbox row instead of dispatching directly.
-            if (config('notifications.use_outbox', true)) {
-                // create outbox entry; target_id null for legacy single-target path
-                \App\Models\Outbox::create([
-                    'notification_id' => $notification->id,
-                    'target_id' => null,
-                    'payload' => [
-                        'action' => 'deliver_notification',
-                        'notification_id' => $notification->id,
-                    ],
-                    'available_at' => now(),
-                ]);
-
-                // Note: outbox:flush should be run (cron/supervisor) or called via scheduler/worker
-            } else {
-                DeliverNotification::dispatch($notification->id);
-            }
+            $this->dispatcher->schedule($notification);
 
             return ['status' => 'created', 'notification' => $notification];
         });
@@ -87,7 +74,7 @@ class NotificationService
 
             $this->repo->save($notification);
 
-            DeliverNotification::dispatch($notification->id);
+            $this->dispatcher->schedule($notification);
 
             return ['status' => 'accepted', 'notification' => $notification];
         });
