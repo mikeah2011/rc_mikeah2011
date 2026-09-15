@@ -2,7 +2,7 @@
 
 最小可行实现（MVP）实现目标：接收业务系统提交的通知请求（URL、Method、Headers、Body），持久化并异步投递到目标 HTTP(S) 端点，提供尝试记录与人工重投能力。MVP 在本项目语境中表示“最小可行实现（Minimum Viable Implementation）”，不是系统名称。
 
-## 目录结构（详细）
+## 目录结构
 下面以树状结构展示仓库的主要目录与关键文件，并附上更详尽的说明，便于快速定位实现代码与设计文档：
 
 ```
@@ -54,7 +54,7 @@
 └── README.md                                 # 项目总览、快速开始与文档索引
 ```
 
-## 文档与功能说明（简短指引）
+## 项目文档
 
 详尽文档请查看 repositories 中的 documents/ 目录：
 
@@ -64,6 +64,8 @@
 （更多设计/运维/实现细节请在 documents/ 内查阅相应文件）
 
 
+
+## 快速开始
 
 1. 复制环境示例并生成应用密钥：
 
@@ -102,17 +104,19 @@ php artisan migrate --force
 php artisan test --testsuite=Feature
 ```
 
-## 容器化（可选）
+## 容器化
 仓库包含 docker-compose.yml 和 Dockerfile，可在有 Docker 环境的机器上用以下命令启动：
 
-  docker compose up -d --build
-  docker compose exec app php artisan migrate --force
-  docker compose exec app php artisan test --testsuite=Feature
+```
+docker compose up -d --build
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan test --testsuite=Feature
+```
 
 详细步骤见 documents/SETUP.md。
 
 
-## 开发与分批规则（摘要）
+## 开发规则
 - 以小批次提交为原则：每批包含实现、迁移、测试与文档，避免一次性大包提交。
 - 所有会影响运行时或 DB 的变更需包含对应迁移与测试。
 - 敏感操作（生产发布、远程推送）需人工批准，详见 AI_MODEL_POLICY.md 与 plan.md。
