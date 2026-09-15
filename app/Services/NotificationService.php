@@ -1,0 +1,74 @@
+<?php
+
+namespace App\Services;
+
+use App\Jobs\DeliverNotification;
+use App\Repositories\NotificationRepository;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+
+class NotificationService
+{
+    protected NotificationRepository $repo;
+
+    public function __construct(NotificationRepository $repo)
+    {
+        $this->repo = $repo;
+    }
+
+    public function createNotification(array $data, ?string $clientId, ?string $idempotencyKey)
+    {
+        return DB::transaction(function () use ($data, $clientId, $idempotencyKey) {
+            if ($idempotencyKey) {
+                $existing = $this->repo->findByClientAndIdempotency($clientId, $idempotencyKey);
+                if ($existing) {
+                    return ['status' => 'exists', 'notification' => $existing];
+                }
+            }
+
+            $payload = [
+                'id' => (string) Str::uuid(),
+                'client_id' => $clientId,
+                'idempotency_key' => $idempotencyKey,
+                'method' => strtoupper($data['method']),
+                'url' => $data['url'],
+                'headers' => $data['headers'] ?? null,
+                'body' => $data['body'] ?? null,
+                'status' => 'pending',
+                'delivery_round' => 1,
+            ];
+
+            $notification = $this->repo->create($payload);
+
+            DeliverNotification::dispatch($notification->id);
+
+            return ['status' => 'created', 'notification' => $notification];
+        });
+    }
+
+    public function retryNotification(string $id)
+    {
+        return DB::transaction(function () use ($id) {
+            $notification = $this->repo->findByIdForUpdate($id);
+            if (! $notification) {
+                return ['status' => 'not_found'];
+            }
+
+            if ($notification->status !== 'failed') {
+                return ['status' => 'invalid_state', 'notification' => $notification];
+            }
+
+            $notification->delivery_round = ($notification->delivery_round ?? 1) + 1;
+            $notification->attempts = 0;
+            $notification->status = 'pending';
+            $notification->next_attempt_at = null;
+            $notification->last_attempt_at = null;
+
+            $this->repo->save($notification);
+
+            DeliverNotification::dispatch($notification->id);
+
+            return ['status' => 'accepted', 'notification' => $notification];
+        });
+    }
+}
