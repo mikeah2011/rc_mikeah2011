@@ -1,13 +1,23 @@
-# Documents 索引
+# 文档索引
 
-本目录汇总项目的结构化文档（细化说明、操作手册与设计文档）。README.md 仅提供快速指引，详尽内容请在下列文档中查看：
+- 文档总览（入口）： documents/README.md
 
-- DIRECTORY.md — 仓库目录与每个目录/关键文件的补充说明（定位与职责）。
-- FEATURES.md — 项目主要功能说明、开发摘要与分批策略（适合产品/PO 查阅）。
-- OUTBOX_BROKER.md — Outbox + Broker 组合方案（实现/运维/性能建议）。
-- SA_SD.md — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
-- SETUP.md — 启动与容器化（快速开始、Docker 示例、迁移步骤）。
-- AI_USAGE.md — AI 使用与审计记录说明。
-- PLAN.md, CHANGELOG.md, TECH_STACK.md, AI_MODEL_POLICY.md — 其他实施与决策文档。
+- 核心文档：
+  - SA/SD — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
+  - OUTBOX_BROKER — Outbox + Broker 组合方案实现与运维建议（Redis/Horizon 默认）。
+  - FEATURES — 主要功能与开发摘要（产品/PO 友好）。
+  - DIRECTORY — 仓库目录补充说明（开发者快速定位）。
 
-请按需打开对应文档进行详细阅读。
+- 操作与部署：
+  - SETUP — 本地与容器化启动说明。
+
+- 其他：
+  - PLAN — 实施计划与分批规则（验收标准、分批边界）。
+  - CHANGELOG — 按批次记录的变更与策略调整。
+  - TECH_STACK — 技术栈选型记录与决策历史。
+  - AI_MODEL_POLICY — AI 模型调用与权限放开策略。
+  - AI 使用说明 — 由 AI 参与的工作与审计记录格式。
+  - OPENAPI（规范） — OpenAPI v3 规范草案（可导出为 Swagger UI）。
+  - AI_Coding_Assignment.pdf — 课程/作业说明文档。
+
+（此文件为文档索引，点击上方链接以查看详细内容。）
