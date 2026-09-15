@@ -2,36 +2,74 @@
 
 最小可行实现（MVP）实现目标：接收业务系统提交的通知请求（URL、Method、Headers、Body），持久化并异步投递到目标 HTTP(S) 端点，提供尝试记录与人工重投能力。MVP 在本项目语境中表示“最小可行实现（Minimum Viable Implementation）”，不是系统名称。
 
-## 目录结构（tree）
-下面以树状结构展示仓库的主要目录与关键文件：
+## 目录结构（详细）
+下面以树状结构展示仓库的主要目录与关键文件，并附上更详尽的说明，便于快速定位实现代码与设计文档：
 
 ```
 .
 ├── app/
-│   ├── Http/Controllers/NotificationController.php    # API 端点逻辑
-│   ├── Jobs/DeliverNotification.php                   # 异步投递与重试实现
-│   └── Models/Notification.php                        # Notification 模型与关系
+│   ├── Http/
+│   │   └── Controllers/
+│   │       └── NotificationController.php    # API: store() (持久化+入队), retry() (人工重投)
+│   ├── Jobs/
+│   │   └── DeliverNotification.php           # Job: 执行 HTTP 投递、记录 attempt、决定重试
+│   └── Models/
+│       └── Notification.php                  # 模型: UUID 主键, 状态字段, delivery_round, casts
 ├── config/
-│   └── notifications.php                              # 投递/重试策略配置（可调）
+│   └── notifications.php                     # 可配置参数: base_delay, max_attempts, jitter, backoff_factor
 ├── database/
-│   └── migrations/                                    # 数据库迁移（notifications, attempts, jobs）
+│   └── migrations/
+│       ├── *_create_notifications_table.php          # notifications 表 schema (target_url, method, headers, body, status)
+│       ├── *_create_notification_attempts_table.php  # attempts 表 schema (notification_id, status_code, response_body)
+│       └── *_create_jobs_tables_if_needed.php        # queue/failed_jobs (环境可选)
 ├── routes/
-│   └── api.php                                        # API 路由（创建、重投）
+│   └── api.php                               # 路由: POST /api/notifications, POST /api/notifications/{id}/retry
 ├── tests/
-│   └── Feature/                                       # Feature 测试（创建、重投流程）
+│   └── Feature/
+│       ├── CreateNotificationTest.php        # 验证入队/幂等/响应码
+│       └── RetryNotificationTest.php         # 验证人工重投逻辑与 dispatch
 ├── documents/
-│   ├── PLAN.md
-│   ├── CHANGELOG.md
-│   ├── TECH_STACK.md
-│   ├── AI_Coding_作业.pdf
-│   └── SETUP.md
-├── docker-compose.yml
+│   ├── PLAN.md                               # 实施计划、分批规则与验收标准
+│   ├── CHANGELOG.md                          # 按批次记录的变更与策略调整
+│   ├── TECH_STACK.md                         # 技术选型、AI 建议与最终决策
+│   ├── AI_MODEL_POLICY.md                    # AI 模型调用策略与权限说明
+│   └── SETUP.md                              # 本地与 Docker 环境的启动与验证步骤
+├── docker-compose.yml                        # Docker Compose（app, db, queue）示例（在有 Docker 的机器上使用）
 ├── docker/
-│   └── php/Dockerfile
-└── README.md
+│   └── php/Dockerfile                        # PHP 容器镜像定义
+├── .env.example                              # 环境变量示例
+├── composer.json                             # PHP 依赖清单
+└── README.md                                 # 项目总览、快速开始与文档索引
 ```
 
-上表为快速定位参考；文档目录下的文件可点击访问（见上方“文档索引”）。
+每个目录的补充说明：
+- app/Http/Controllers/NotificationController.php
+  - store(): 在事务中使用 (client_id, idempotency_key) 确保幂等，写入 notifications 表并 dispatch DeliverNotification Job。
+  - retry(): 对 failed 状态允许人工发起新一轮（delivery_round++），并在事务内重置 attempts/next_attempt_at 后入队。
+
+- app/Jobs/DeliverNotification.php
+  - 发送 HTTP 请求（不自动跟随 3xx），2xx 视为成功；对 408/429/5xx 判定为短暂错误并按 Retry-After/指数退避重试；其他 4xx 视为永久失败并记录。
+  - 每次尝试写入 notification_attempts（status_code、response_body、attempted_at）。
+
+- config/notifications.php（关键配置）
+  - max_attempts: 最大尝试次数（例如 5）
+  - base_delay: 基线延迟（秒）
+  - backoff_factor: 指数退避因子
+  - jitter: 随机抖动范围
+
+- database/migrations/
+  - notifications 表重要字段示例：id (UUID), client_id, idempotency_key, target_url, method, headers (JSON), body (JSON/text), status (pending/processing/succeeded/failed), delivery_round, next_attempt_at, created_at, updated_at
+  - notification_attempts 表记录每次 HTTP 调用的返回码与 body，便于人工诊断与回放。
+
+- documents/
+  - 将所有策略、变更、计划、AI 使用记录集中管理，便于审计与教学用途。
+
+定位建议
+- 想查看投递实现：打开 app/Jobs/DeliverNotification.php
+- 想查看入队/幂等策略：查看 app/Http/Controllers/NotificationController.php 与数据库迁移文件
+- 想修改重试参数：调整 config/notifications.php 并重启 worker
+
+上面结构已在仓库中实现；如需我把此段内容进一步细化（例如列出每个迁移文件名、Controller 方法签名、或把 notifications 表字段完整列出为表格），我可以继续完善并提交更改。
 
 ## 主要功能（MVP）
 - 接收并验证通知请求；支持幂等键以防重复创建。
