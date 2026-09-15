@@ -40,6 +40,31 @@
 - [SETUP](documents/SETUP.md) — 本地与容器化启动说明.
 - [AI Coding 作业](documents/AI_Coding_作业.pdf) — 课程/作业说明文档.
 
+## 目录结构（概要）
+- app/ — Laravel 应用代码（Controllers, Models, Jobs, Providers）。
+- config/ — 配置文件（包括 config/notifications.php 用于投递/重试策略）。
+- database/migrations/ — 数据库迁移文件（notifications, notification_attempts, jobs 等）。
+- app/Jobs/ — 异步投递逻辑（DeliverNotification Job 与重试实现）。
+- routes/ — API 路由（routes/api.php 提供创建与人工重投接口）。
+- tests/Feature/ — Feature 测试示例（创建与重投流程）。
+- documents/ — 项目文档目录（PLAN.md, CHANGELOG.md, TECH_STACK.md, SETUP.md 等）。
+- docker-compose.yml, docker/ — 容器化启动文件，用于在有 Docker 的机器上做端到端验证。
+
+## 主要功能点（更细化）
+- 接收层（API）
+  - POST /api/notifications：接收通知请求并持久化入库，支持幂等键。
+  - POST /api/notifications/{id}/retry：对失败的通知发起人工重投并增加 delivery_round。
+- 数据与幂等性
+  - notifications 表记录目标地址、payload、headers、状态与 delivery_round。
+  - 使用 client_id + idempotency_key 防止重复创建。
+- 投递与重试
+  - DeliverNotification Job 负责 HTTP 投递、记录 NotificationAttempt 及判定重试逻辑。
+  - 支持 Retry-After（秒或 HTTP-date）、指数退避+抖动、可配置的 max attempts。
+- 可观察性与回放
+  - 保存每次尝试的响应代码与 body（notification_attempts），便于人工诊断与重投。
+- 配置驱动
+  - config/notifications.php 提供退避参数、最大重试次数与可调整的投递策略。
+
 ## 开发与分批规则（摘要）
 - 以小批次提交为原则：每批包含实现、迁移、测试与文档，避免一次性大包提交。
 - 所有会影响运行时或 DB 的变更需包含对应迁移与测试。
