@@ -103,7 +103,14 @@
 - 投递实现支持多渠道（ChannelManager + HttpChannel，可扩展 Email/SMS 驱动），Job 按 target 细粒度投递（DeliverTargetNotification）。
 - 重试策略：指数退避、Retry-After 支持、抖动与可配置的最大重试次数（config/notifications.php）。
 - 人工重投：提供 POST /api/notifications/{id}/retry，用于对 failed 状态发起新一轮（delivery_round++）。
-- 可观察性：保存每次尝试的响应码与响应体，便于诊断与回放。 
+- 可观察性：保存每次尝试的响应码与响应体，便于诊断与回放。
+
+短结论（快速参考）
+
+- 为何用 Outbox：解决「DB 写入 与 消息发布」的原子性/一致性问题，能防止事务提交后消息丢失或双写失败的风险。
+- 代价：增加 DB 写入与存储负担，可能导致 outbox 堆积、索引/扫描压力与存储增长。
+- 缓解措施：批量写入 targets/outbox（Eloquent::insert 或 raw insert）；给 outbox 建索引并按 available_at 分页查询（limit）；短事务；并发 flush worker 扩容；设置 DLQ 与重试计数；监控 outbox 未处理数与队列深度；必要时拆库/分区或迁移到专用写库。
+- 替代方案：若吞吐极高，考虑 RabbitMQ（publisher-confirm）、Kafka（producer transactions/CDC）或 SQS，将负担从主 DB 转移到消息平台；建议路线为先用 Outbox+Redis（快速部署、保证一致性），再根据负载迁移到更重型平台。
 
 ## 快速开始（开发/验证，SQLite）
 1. 复制环境示例并生成应用密钥：
