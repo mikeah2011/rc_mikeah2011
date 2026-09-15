@@ -42,6 +42,14 @@
 └── README.md                                 # 项目总览、快速开始与文档索引
 ```
 
+文档索引：
+- [CHANGELOG](documents/CHANGELOG.md) — 仓库专用的变更记录与策略调整文档。
+- [TECH_STACK](documents/TECH_STACK.md) — 技术栈选型记录与决策历史。
+- [PLAN](documents/PLAN.md) — 实施计划与分批规则。
+- [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md) — AI 模型调用与权限放开策略。
+- [SETUP](documents/SETUP.md) — 本地与容器化启动说明。
+- [AI Coding 作业](documents/AI_Coding_作业.pdf) — 课程/作业说明文档。
+
 每个目录的补充说明：
 - app/Http/Controllers/NotificationController.php
   - store(): 在事务中使用 (client_id, idempotency_key) 确保幂等，写入 notifications 表并 dispatch DeliverNotification Job。
@@ -71,12 +79,12 @@
 
 上面结构已在仓库中实现；如需我把此段内容进一步细化（例如列出每个迁移文件名、Controller 方法签名、或把 notifications 表字段完整列出为表格），我可以继续完善并提交更改。
 
-## 主要功能（MVP）
-- 接收并验证通知请求；支持幂等键以防重复创建。
-- 持久化通知记录与投递尝试记录（notification_attempts）。
-- 使用 database queue 异步投递；实现指数退避、Retry-After 支持与最大重试次数。
-- 提供人工重投接口：POST /api/notifications/{id}/retry。
-- 配置驱动（config/notifications.php），并包含开发环境（SQLite）与容器化（docker-compose）说明。
+## 主要功能
+- 接收并验证通知请求；支持幂等键以防重复创建（client_id + idempotency_key）。
+- 持久化通知记录与每次投递尝试记录（notifications 与 notification_attempts）。
+- 异步投递：使用 database queue；实现指数退避、Retry-After 支持、抖动与可配置的最大重试次数（config/notifications.php）。
+- 人工重投：提供 POST /api/notifications/{id}/retry，用于对 failed 状态发起新一轮（delivery_round++）。
+- 可观察性：保存每次尝试的响应码与响应体，便于诊断与回放。 
 
 ## 快速开始（开发/验证，SQLite）
 1. 复制环境示例并生成应用密钥：
@@ -108,21 +116,6 @@
 - [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md) — AI 模型调用与权限放开策略.
 - [SETUP](documents/SETUP.md) — 本地与容器化启动说明.
 - [AI Coding 作业](documents/AI_Coding_作业.pdf) — 课程/作业说明文档.
-
-## 主要功能点（更细化）
-- 接收层（API）
-  - POST /api/notifications：接收通知请求并持久化入库，支持幂等键。
-  - POST /api/notifications/{id}/retry：对失败的通知发起人工重投并增加 delivery_round。
-- 数据与幂等性
-  - notifications 表记录目标地址、payload、headers、状态与 delivery_round。
-  - 使用 client_id + idempotency_key 防止重复创建。
-- 投递与重试
-  - DeliverNotification Job 负责 HTTP 投递、记录 NotificationAttempt 及判定重试逻辑。
-  - 支持 Retry-After（秒或 HTTP-date）、指数退避+抖动、可配置的 max attempts。
-- 可观察性与回放
-  - 保存每次尝试的响应代码与 body（notification_attempts），便于人工诊断与重投。
-- 配置驱动
-  - config/notifications.php 提供退避参数、最大重试次数与可调整的投递策略。
 
 ## 开发与分批规则（摘要）
 - 以小批次提交为原则：每批包含实现、迁移、测试与文档，避免一次性大包提交。
