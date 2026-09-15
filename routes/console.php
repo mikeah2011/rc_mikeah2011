@@ -1,11 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('outbox:flush')->everyMinute()->withoutOverlapping();
-
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+Schedule::command('notifications:prune')->dailyAt('02:15')->withoutOverlapping()->onOneServer();
+Schedule::command('queue:prune-failed --hours=2160')->dailyAt('02:30')->withoutOverlapping()->onOneServer();
