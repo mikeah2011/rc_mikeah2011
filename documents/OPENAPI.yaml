@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: Notifications API (Notifications MVP)
+  version: 0.1.0
+  description: |
+    最小可行实现（MVP）的通知投递 API，包含异步接收与人工重投。文档仅为草案，实际以代码为准。
+servers:
+  - url: http://localhost:8000
+paths:
+  /api/notifications:
+    post:
+      summary: 提交通知请求（异步投递）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, method]
+              properties:
+                client_id:
+                  type: string
+                  description: 客户端标识（可通过 X-Client-Id header 提供）
+                idempotency_key:
+                  type: string
+                  description: 幂等键
+                url:
+                  type: string
+                  format: uri
+                method:
+                  type: string
+                  enum: [GET, POST, PUT, DELETE, PATCH]
+                headers:
+                  type: object
+                  additionalProperties:
+                    type: string
+                body:
+                  type: string
+      responses:
+        '202':
+          description: Accepted (请求已接收并入队)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '200':
+          description: 已存在（幂等键命中）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: 请求错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/notifications/{id}/retry:
+    post:
+      summary: 人工重投（仅对 failed 状态）
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Accepted（已触发重投）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: 未找到通知
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 状态冲突（非 failed）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          description: pending|processing|succeeded|failed
+        delivery_round:
+          type: integer
+    NotificationResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Notification'
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            details:
+              type: object

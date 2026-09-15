@@ -51,6 +51,7 @@
 - [AI 使用说明](documents/AI_USAGE.md#ai_usage) — 由 AI 参与的工作与审计记录格式。
 - [SETUP](documents/SETUP.md#setup) — 本地与容器化启动说明。
 - [README 调整策略](documents/README_POLICY.md#readme_policy) — README 维护规则与流程。
+- [OPENAPI (规范)](documents/OPENAPI.yaml) — OpenAPI v3 规范草案（可导出为 Swagger UI）。
 - [AI_Coding_Assignment.pdf](documents/AI_Coding_Assignment.pdf) — 课程/作业说明文档。
 
 每个目录的补充说明：
