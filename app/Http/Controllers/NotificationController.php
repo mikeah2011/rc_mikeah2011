@@ -39,11 +39,11 @@ class NotificationController
         $result = $this->service->retryNotification($id);
 
         if ($result['status'] === 'not_found') {
-            return ApiResponse::error('notification not found', 404, [], 404);
+            return ApiResponse::notFound('notification not found');
         }
 
         if ($result['status'] === 'invalid_state') {
-            return ApiResponse::error('only failed notifications can be retried', 409, [], 409);
+            return ApiResponse::conflict('only failed notifications can be retried');
         }
 
         $n = $result['notification'];
