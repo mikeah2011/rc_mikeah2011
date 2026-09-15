@@ -1,85 +1,58 @@
-# API 通知系统
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-本项目依据《AI Coding 作业.pdf》，规划一个接收内部业务请求、异步向外部 HTTP(S) API 投递通知的服务。
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-系统名称为“API 通知系统”。当前规划的是最小可行实现 (MVP)；“MVP”仅表示实现阶段与功能范围，不是系统名称，下文简称“最小可行实现”。
+## About Laravel
 
-**当前阶段：第一批 Laravel 项目骨架准备中，应用代码尚未落入仓库。** 本文记录技术选型、实施进度与调整方向，不代表规划中的能力已经完成。
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-## 文档分工
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-| 文档 | 用途 |
-|---|---|
-| [plan.md](./plan.md) | 实施计划：系统边界、接口、数据模型、失败策略、实作步骤与完成标准 |
-| [readme.md](./readme.md) | 决策记录：为什么选择当前方案、讨论中发生的调整，以及后续调整依据 |
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-后续以项目目录中的 `plan.md` 为计划编辑入口；session 内保留的副本不自动同步。方案改变时同步更新这两份项目文档，避免决策说明与执行计划不一致。本项目的模型调用与权限放开策略已记录于 `AI_MODEL_POLICY.md`，请参阅以了解何时使用高能力模型、何时放开自动化权限以及批准流程。
+## Learning Laravel
 
-## 已讨论的选型与调整
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
-| 议题 | 讨论与当前方向 | 依据 |
-|---|---|---|
-| 后端技术栈 | AI 最初建议 Python + FastAPI；用户提出偏好 PHP + Laravel，计划据此调整 | 用户的技术偏好是明确输入；Laravel 的内置队列、HTTP Client、验证与迁移能力适合该最小可行实现 |
-| 对外接口 | 采用 HTTP REST API | 业务系统只需提交通知，不必等待供应商处理结果 |
-| 数据库 | 采用 PostgreSQL（PgSQL） | 持久化通知、尝试记录和队列任务，并利用事务与唯一约束维护一致性 |
-| 最小可行实现范围 | 用户已确认包含接收、投递、有限重试、失败查询与人工重投 | 形成最小故障处理闭环，不只覆盖正常成功路径 |
-| 文档留存 | 将计划从 session 复制到项目目录，并增加本文 | 方便用户随时查看、直接修改和记录后续讨论 |
-| 名称与阶段术语 | 原文标题将系统名称与 MVP 并列；用户明确 MVP 是“最小可行实现”，不是系统名称，现据此统一两份文档 | 用户已确认全部位置调整；系统名称使用“API 通知系统”，实现范围与系统职责分开描述 |
-| 实现与提交节奏 | 用户要求 Laravel 应用逐步实现、分批提交，不一次性提交全部功能 | 每批只围绕一个明确目标，相关代码、测试和文档一同交付；较大阶段继续拆分 |
+In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-以下架构细节来自当前计划建议，仍可在实施前调整；不将其描述为用户已经逐项确认的决定。
+You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
 
-## 当前架构建议
+## Agentic Development
 
-```text
-业务系统 -> Laravel REST API -> PostgreSQL database queue
-                                      |
-                                      v
-                              Laravel Queue Worker -> 外部 HTTP(S) API
+Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+
+```bash
+composer require laravel/boost --dev
+
+php artisan boost:install
 ```
 
-API 与 Worker 共用代码库、独立运行。API 在同一 PostgreSQL 连接的事务内保存通知并写入数据库队列，提交成功后返回 `202 Accepted`。Worker 负责投递、记录结果以及安排重试。
+Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
-第一版优先复用 Laravel database queue，不另行引入 Redis、RabbitMQ 或 Kafka，也不自研完整调度器。这样减少部署组件，并避免通知记录与外部消息队列之间的双写问题；代价是队列和业务记录共享数据库负载。
+## Contributing
 
-## 可靠性上的关键取舍
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-| 问题 | 当前计划 |
-|---|---|
-| 接收成功意味着什么 | `202` 表示已持久化接收，不表示供应商已收到或完成业务处理 |
-| 重复通知 | 采用允许重复的至少一次处理模型；有限自动重试不等于保证最终送达 |
-| 提交幂等 | 使用调用方标识与幂等键防止重复建单；不能替代供应商侧的业务幂等 |
-| 临时故障 | 网络失败、超时、`408`、`429`、`5xx` 进行有限退避重试 |
-| 长期不可用 | 重试耗尽后保存失败记录，支持查询与人工重投，不无限重试 |
-| 成功判断 | 先以 HTTP `2xx` 为准，不解析供应商特有的业务返回码 |
-| 请求安全 | 内部鉴权、目标白名单、连接层 SSRF 防护、TLS 校验与敏感信息保护属于基本边界 |
+## Code of Conduct
 
-超时时间、重试次数、请求大小等是 `plan.md` 中的初始建议值，不是需求文件规定的指标；实施时应结合实际供应商约束调整。
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-## 最小可行实现暂不扩展的范围
+## Security Vulnerabilities
 
-暂不实现管理页面、供应商业务适配、动态凭据刷新、严格顺序、恰好一次投递、复杂租户体系或微服务拆分。优先完成“持久化接收 -> 异步投递 -> 有限重试 -> 失败可查、可重投”的闭环。
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-这些是当前计划主动限制复杂度的建议，不代表用户曾逐项否决过这些功能，也不应编写成虚构的 AI 使用经历。
+## License
 
-## 后续调整方向
-
-| 触发条件 | 调整方向 |
-|---|---|
-| 初版实现范围仍然过大 | 先减少界面、抽象层和可选运维功能，不牺牲持久化接收、有限重试与失败可见性 |
-| 数据库争用或排队延迟明显升高 | 先优化索引、Worker 数量与历史数据清理，再评估独立队列；迁移时补足 outbox 等可靠发布机制 |
-| 单一供应商故障影响其他通知 | 按目标隔离队列，增加并发限制、限流与熔断 |
-| 供应商格式或认证机制日益复杂 | 增加受控适配层和集中凭据管理，而非开放任意脚本执行 |
-| 运行维护需求增长 | 增加指标、告警、审计和失败处理界面 |
-
-第一批采用 Laravel 13 官方骨架，本机 PHP 为 8.5；依赖尚未落入仓库，最终版本以入库后的 `composer.lock` 为准。部署环境、实际流量、供应商差异及数据保留期限尚未明确，不预先承诺未经测量的容量或可用性指标。
-
-## 实施状态与记录原则
-
-计划分为五个阶段：项目骨架、接收与查询、可靠投递、人工重投与关键场景覆盖、交付说明。**第一批正在准备，其余阶段尚未开始。** 已留存计划与选型记录、统一系统名称与阶段术语，并将文档纳入本地 Git 版本管理。
-
-按用户要求，后续采用小批次交付：每批完成一个明确目标，完成相关验证并同步文档后创建独立本地提交，不把整个应用攒成一个大提交，也不自动推送远程。详细规则与批次进度见 [plan.md](./plan.md#6-实作步骤与交付物)。
-
-第一批范围限定为 Laravel 骨架、PostgreSQL/database queue 配置与本地启动说明。第一批已完成：已将 composer.json、composer.lock、.env.example 和 SETUP.md 提交入库（commits: 12e121b, a50fcd6）。完整应用代码（app/、routes/、artisan 等）将分批在后续提交中逐步导入；默认 Docker 引擎当前不可连接，PostgreSQL 运行环境仍待落实。
-
-后续讨论记录应注明“原方案、调整内容、原因、确认状态”，并区分用户决定、AI 建议和实际实现结果。最终交付时补充真实的运行说明与 `AI_USAGE.md`；当前已发生的技术栈调整可作为 AI 协作记录，其他内容只按实际过程填写。
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
