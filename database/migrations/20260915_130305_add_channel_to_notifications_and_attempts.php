@@ -8,17 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('notifications', function (Blueprint $table) {
-            if (! Schema::hasColumn('notifications', 'channel')) {
-                $table->string('channel')->default('http')->after('status');
-            }
-        });
+        if (Schema::hasTable('notifications')) {
+            Schema::table('notifications', function (Blueprint $table) {
+                if (! Schema::hasColumn('notifications', 'channel')) {
+                    $table->string('channel')->default('http')->after('status');
+                }
+            });
+        }
 
-        Schema::table('notification_attempts', function (Blueprint $table) {
-            if (! Schema::hasColumn('notification_attempts', 'channel')) {
-                $table->string('channel')->nullable()->after('attempt_number');
-            }
-        });
+        if (Schema::hasTable('notification_attempts')) {
+            Schema::table('notification_attempts', function (Blueprint $table) {
+                if (! Schema::hasColumn('notification_attempts', 'channel')) {
+                    $table->string('channel')->nullable()->after('attempt_number');
+                }
+            });
+        }
     }
 
     public function down(): void
