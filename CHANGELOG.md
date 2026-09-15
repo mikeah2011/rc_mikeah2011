@@ -82,6 +82,6 @@
 ---
 
 文件位置：`/CHANGELOG.md`（本文件）
-相关文件：`plan.md`, `readme.md`, `AI_MODEL_POLICY.md`, `SETUP.md`
+相关文件：`plan.md`, `README.md`, `AI_MODEL_POLICY.md`, `SETUP.md`
 
-最后更新：2026-09-15 11:30:00 +08:00
+最后更新：2026-09-15 11:31:20 +08:00
