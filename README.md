@@ -2,6 +2,37 @@
 
 最小可行实现（MVP）实现目标：接收业务系统提交的通知请求（URL、Method、Headers、Body），持久化并异步投递到目标 HTTP(S) 端点，提供尝试记录与人工重投能力。MVP 在本项目语境中表示“最小可行实现（Minimum Viable Implementation）”，不是系统名称。
 
+## 目录结构（tree）
+下面以树状结构展示仓库的主要目录与关键文件：
+
+```
+.
+├── app/
+│   ├── Http/Controllers/NotificationController.php    # API 端点逻辑
+│   ├── Jobs/DeliverNotification.php                   # 异步投递与重试实现
+│   └── Models/Notification.php                        # Notification 模型与关系
+├── config/
+│   └── notifications.php                              # 投递/重试策略配置（可调）
+├── database/
+│   └── migrations/                                    # 数据库迁移（notifications, attempts, jobs）
+├── routes/
+│   └── api.php                                        # API 路由（创建、重投）
+├── tests/
+│   └── Feature/                                       # Feature 测试（创建、重投流程）
+├── documents/
+│   ├── PLAN.md
+│   ├── CHANGELOG.md
+│   ├── TECH_STACK.md
+│   ├── AI_Coding_作业.pdf
+│   └── SETUP.md
+├── docker-compose.yml
+├── docker/
+│   └── php/Dockerfile
+└── README.md
+```
+
+上表为快速定位参考；文档目录下的文件可点击访问（见上方“文档索引”）。
+
 ## 主要功能（MVP）
 - 接收并验证通知请求；支持幂等键以防重复创建。
 - 持久化通知记录与投递尝试记录（notification_attempts）。
@@ -39,37 +70,6 @@
 - [AI_MODEL_POLICY](documents/AI_MODEL_POLICY.md) — AI 模型调用与权限放开策略.
 - [SETUP](documents/SETUP.md) — 本地与容器化启动说明.
 - [AI Coding 作业](documents/AI_Coding_作业.pdf) — 课程/作业说明文档.
-
-## 目录结构（tree）
-下面以树状结构展示仓库的主要目录与关键文件：
-
-```
-.
-├── app/
-│   ├── Http/Controllers/NotificationController.php    # API 端点逻辑
-│   ├── Jobs/DeliverNotification.php                   # 异步投递与重试实现
-│   └── Models/Notification.php                        # Notification 模型与关系
-├── config/
-│   └── notifications.php                              # 投递/重试策略配置（可调）
-├── database/
-│   └── migrations/                                    # 数据库迁移（notifications, attempts, jobs）
-├── routes/
-│   └── api.php                                        # API 路由（创建、重投）
-├── tests/
-│   └── Feature/                                       # Feature 测试（创建、重投流程）
-├── documents/
-│   ├── PLAN.md
-│   ├── CHANGELOG.md
-│   ├── TECH_STACK.md
-│   ├── AI_Coding_作业.pdf
-│   └── SETUP.md
-├── docker-compose.yml
-├── docker/
-│   └── php/Dockerfile
-└── README.md
-```
-
-上表为快速定位参考；文档目录下的文件可点击访问（见上方“文档索引”）。
 
 ## 主要功能点（更细化）
 - 接收层（API）
