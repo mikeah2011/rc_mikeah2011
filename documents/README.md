@@ -7,8 +7,8 @@
   - [FEATURE_OVERVIEW](./FEATURE_OVERVIEW.md) — 功能说明与目录补充（快速手册，开发者/产品首选入口）。
 
 - 核心文档：
-  - [SA/SD](./SA_SD.md#sa_sd) — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
-  - [OUTBOX_BROKER](./OUTBOX_BROKER.md) — Outbox + Broker 组合方案实现与运维建议（Redis/Horizon 默认）。
+  - [SA/SD](./SA_SD.md) — 系统边界、可靠性与失败处理、技术取舍和演进依据。
+  - [OUTBOX_BROKER](./OUTBOX_BROKER.md) — Outbox + 持久化队列实现与运维建议（默认 database queue）。
   - [FEATURES](./FEATURES.md) — 主要功能与开发摘要（产品/PO 友好）。
   - [DIRECTORY](./DIRECTORY.md) — 仓库目录补充说明（开发者快速定位）。
 
