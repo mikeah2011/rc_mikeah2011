@@ -58,8 +58,8 @@
 
 详尽文档请查看 repositories 中的 documents/ 目录：
 
-- 文档索引（入口）： documents/README.md
-- 主要功能与快速参考： documents/FEATURE_OVERVIEW.md（或 documents/FEATURES.md）
+- 文档索引（入口）： [documents/README.md](documents/README.md)
+- 主要功能与快速参考： [documents/FEATURE_OVERVIEW.md](documents/FEATURE_OVERVIEW.md)（或 [documents/FEATURES.md](documents/FEATURES.md)）
 
 （更多设计/运维/实现细节请在 documents/ 内查阅相应文件）
 
