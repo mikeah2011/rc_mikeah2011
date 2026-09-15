@@ -28,12 +28,20 @@
 
 3. 使用 PostgreSQL（推荐）：
 
-   # 确保 PostgreSQL 运行并创建数据库
+   # 如果本机有 PostgreSQL，请确保它运行并创建数据库
    psql -c "CREATE DATABASE notifications_dev;"
    # 更新 .env 中的 DB_* 值
    composer install
    php artisan migrate
    php artisan serve
+
+   # 如果你没有本地 Postgres 或想用容器化环境，可使用仓库内的 docker-compose：
+   # 启动容器（第一次运行会构建 PHP 镜像并启动 Postgres）：
+   docker compose up -d --build
+   # 进入 app 容器并生成应用密钥、迁移（示例使用容ainer 内的 composer/php）:
+   docker compose exec app bash -lc "cp .env.example .env && composer install && php artisan key:generate && php artisan migrate"
+   # 启动 Laravel 的内置服务器（容器内）并映射到主机: http://localhost:8000
+   docker compose exec -d app bash -lc "php artisan serve --host=0.0.0.0 --port=8000"
 
 注意
 
