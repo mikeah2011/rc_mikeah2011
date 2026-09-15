@@ -8,28 +8,40 @@
 ```
 .
 ├── app/
+│   ├── Console/
+│   │   └── Commands/
+│   │       └── FlushOutbox.php               # artisan 命令: outbox:flush
 │   ├── Http/
 │   │   └── Controllers/
 │   │       └── NotificationController.php    # API: store() (持久化+入队), retry() (人工重投)
 │   ├── Jobs/
-│   │   └── DeliverNotification.php           # Job: 执行 HTTP 投递、记录 attempt、决定重试
+│   │   ├── DeliverNotification.php          # Job: 旧/兼容投递（delegate to channels）
+│   │   └── DeliverTargetNotification.php    # Job: 按 target 投递（Outbox 转发用）
+│   ├── Channels/
+│   │   ├── ChannelContract.php
+│   │   ├── ChannelManager.php
+│   │   └── HttpChannel.php                  # HTTP 投递实现
 │   └── Models/
-│       └── Notification.php                  # 模型: UUID 主键, 状态字段, delivery_round, casts
+│       ├── Notification.php                 # 模型: UUID 主键, 状态字段, delivery_round, casts
+│       └── Outbox.php                       # Outbox 模型（id, notification_id, target_id, payload...）
 ├── config/
-│   └── notifications.php                     # 可配置参数: base_delay, max_attempts, jitter, backoff_factor
+│   └── notifications.php                     # 可配置参数: use_outbox, max_attempts, backoff, jitter
 ├── database/
 │   └── migrations/
-│       ├── *_create_notifications_table.php          # notifications 表 schema (target_url, method, headers, body, status)
-│       ├── *_create_notification_attempts_table.php  # attempts 表 schema (notification_id, status_code, response_body)
+│       ├── *_create_notifications_table.php          # notifications 表 schema
+│       ├── *_create_notification_attempts_table.php  # attempts 表 schema
+│       ├── *_create_outbox_table.php                 # outbox 表 schema (outbox flushing)
 │       └── *_create_jobs_tables_if_needed.php        # queue/failed_jobs (环境可选)
 ├── routes/
-│   └── api.php                               # 路由: POST /api/notifications, POST /api/notifications/{id}/retry
+│   └── api.php                                   # 路由: POST /api/notifications, POST /api/notifications/{id}/retry
 ├── tests/
 │   └── Feature/
 │       ├── CreateNotificationTest.php        # 验证入队/幂等/响应码
 │       └── RetryNotificationTest.php         # 验证人工重投逻辑与 dispatch
 ├── documents/
 │   ├── PLAN.md                               # 实施计划、分批规则与验收标准
+│   ├── OUTBOX_BROKER.md                      # Outbox + Broker 组合方案实现与运维建议
+│   ├── SA_SD.md                              # 系统架构与系统设计
 │   ├── CHANGELOG.md                          # 按批次记录的变更与策略调整
 │   ├── TECH_STACK.md                         # 技术选型、AI 建议与最终决策
 │   ├── AI_MODEL_POLICY.md                    # AI 模型调用策略与权限说明
@@ -44,6 +56,7 @@
 
 ## 文档索引
 - [SA/SD](documents/SA_SD.md#sa_sd) — 系统架构与系统设计草案（边界、数据模型、失败策略、运维要点）。
+- [OUTBOX_BROKER](documents/OUTBOX_BROKER.md#) — Outbox + Broker 组合方案实现与运维建议（Redis/Horizon 默认）。
 - [PLAN](documents/PLAN.md#plan) — 实施计划与分批规则（验收标准、分批边界）。
 - [CHANGELOG](documents/CHANGELOG.md#changelog) — 按批次记录的变更与策略调整。
 - [TECH_STACK](documents/TECH_STACK.md#tech_stack) — 技术栈选型记录与决策历史。
@@ -86,7 +99,9 @@
 ## 主要功能
 - 接收并验证通知请求；支持幂等键以防重复创建（client_id + idempotency_key）。
 - 持久化通知记录与每次投递尝试记录（notifications 与 notification_attempts）。
-- 异步投递：使用 database queue；实现指数退避、Retry-After 支持、抖动与可配置的最大重试次数（config/notifications.php）。
+- 异步投递：默认建议使用 Redis（Laravel 队列 + Horizon）作为 Broker，并可启用 Outbox 模式保证事务性一致性（参见 documents/OUTBOX_BROKER.md）。
+- 投递实现支持多渠道（ChannelManager + HttpChannel，可扩展 Email/SMS 驱动），Job 按 target 细粒度投递（DeliverTargetNotification）。
+- 重试策略：指数退避、Retry-After 支持、抖动与可配置的最大重试次数（config/notifications.php）。
 - 人工重投：提供 POST /api/notifications/{id}/retry，用于对 failed 状态发起新一轮（delivery_round++）。
 - 可观察性：保存每次尝试的响应码与响应体，便于诊断与回放。 
 
@@ -101,6 +116,9 @@
 3. 安装依赖并运行迁移：
    composer install --no-interaction
    php artisan migrate --force
+
+   注意：默认启用 Outbox（config('notifications.use_outbox') = true）。若启用 Outbox，请定期运行或调度 artisan outbox:flush（示例：php artisan outbox:flush --limit=100）以把 outbox 条目转成队列任务；生产上建议使用 scheduler 或 supervisor 进行短间隔调度。
+
 4. 运行 Feature 测试（示例）：
    php artisan test --testsuite=Feature
 
