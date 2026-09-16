@@ -44,7 +44,7 @@
 - **不监听业务系统的领域事件**：上游负责在业务动作完成后调用本服务，否则还需要处理上游数据库与事件发布的一致性问题。
 - **不实现事件路由、营销规则和模板平台**：这些能力不是验证可靠 HTTP 投递闭环的必要条件，第一版引入会显著扩大范围。
 - **不保证外部副作用 exactly-once**：外部供应商不参与本地数据库事务，只能采用至少一次投递，并要求目标接口配合幂等。
-- **不保证供应商永久不可用时仍能送达**：有限重试耗尽后进入失败状态，供查询和监控告警，由人工判断补推、修正配置或放弃。
+- **不保证供应商永久不可用时仍能送达**：有限重试耗尽后进入失败状态，供调用方按 Delivery ID 查询，由人工判断补推、修正配置或放弃。业务指标和告警属于后续演进能力。
 - **不实现严格顺序和多供应商原子成功**：每个 Endpoint 是独立 Delivery，避免一个供应商故障阻塞其他目标。
 - **不判断供应商的业务处理结果**：MVP 只依据 HTTP 状态判断是否到达，不解析供应商响应 Body。
 
@@ -54,29 +54,34 @@
 flowchart TD
     A[企业内部业务系统] -->|endpoint_key + idempotency_key + payload| B[POST /api/v1/deliveries]
     B --> C[鉴权与参数校验]
-    C --> E[读取受控 Endpoint 配置]
-    E --> F[创建独立 Delivery 与 Job]
-    F --> G[(PostgreSQL 同一事务)]
-    G -->|202 Accepted| A
-    G --> H[Laravel database queue Worker]
-    H --> I{供应商类型}
-    I --> J[Airship<br/>App Push / Live Activity]
-    I --> K[EDM / SMS]
-    I --> L[CRM / 库存系统]
-    I --> M[其他 HTTP 服务商]
-
-    J --> N{投递结果}
-    K --> N
-    L --> N
-    M --> N
-
-    N -->|成功| O[记录 delivered]
-    N -->|暂时失败| P[退避后重新投递]
-    P --> H
-    N -->|永久失败或超过次数| Q[Dead Letter / failed]
-    Q --> R[查询、告警与人工补推]
-    R --> F
+    C --> D[读取调用方已授权的活跃 Endpoint]
+    subgraph T[PostgreSQL 同一事务]
+        E{已有相同幂等键?}
+        F[创建 Delivery]
+        G[写入 notifications Job]
+    end
+    D --> E
+    E -->|否| F
+    F --> G
+    E -->|是，内容一致| H[复用已有 Delivery]
+    E -->|是，内容不同| I[409 Conflict]
+    F -->|202 Accepted，created: true| A
+    H -->|202 Accepted，created: false| A
+    G --> J[Laravel database queue Worker]
+    J --> K[读取 Delivery 与当前 Endpoint 配置]
+    K --> L[通用 HTTP 投递至已配置目标]
+    L --> M{HTTP 结果}
+    M -->|2xx| N[记录 delivered]
+    M -->|408、429、5xx、连接或客户端超时| O[记录 retrying 并延迟 release]
+    O --> J
+    M -->|其他 4xx、重试次数耗尽或 Worker 失败| P[记录业务状态 failed]
+    P --> Q[按 Delivery ID 查询]
+    P --> R[人工补推]
+    R --> S[事务：原 Delivery 开启新 round、重置轮次计数并写入新 Job]
+    S --> G
 ```
+
+图中的“已配置目标”可以是 Airship、EDM、SMS、CRM、库存或其他 HTTP 服务；当前实现不按供应商类型分派 Adapter。`failed` 是 Delivery 的业务死信状态，独立于 Laravel 的 `failed_jobs` 队列基础设施记录。当前实现提供按 ID 查询和人工补推；业务指标、告警、集中路由和模板均属于未来能力。
 
 未来需要集中路由和模板时，可以在统一 API 与 Delivery 之间增加事件路由层，但不会改变可靠投递核心。
 
@@ -88,7 +93,7 @@ flowchart TD
 - **状态机驱动**：使用 `pending → processing → delivered / failed` 表达投递生命周期。
 - **至少一次投递**：宁可在不确定故障后重试，也不能静默丢弃已经接受的通知。
 - **端到端幂等**：接入侧避免重复创建 Delivery，投递侧携带稳定的幂等键，供应商或目标业务接口按该键避免重复副作用。
-- **失败必须有出口**：重试不能无限进行，最终失败进入死信状态，由告警和人工补推形成闭环。
+- **失败必须有出口**：重试不能无限进行，最终失败保留为可查询的业务死信状态，并由人工确认是否补推；后续再以指标和告警加强运营闭环。
 
 ### 1.3 关键工程决策与取舍
 
@@ -117,13 +122,17 @@ flowchart TD
 - 运维人员确认供应商已经恢复、请求仍然有效后，可以人工补推；
 - 人工补推开启新的 delivery round，旧轮次任务不能覆盖新轮次状态。
 
+Endpoint 的 `max_attempts` 限制每个 delivery round 的投递次数。Worker 在实际发送前登记尝试；若进程在结果落库前中断，这次结果不确定的尝试仍消耗额度，并会被标记为 `abandoned`。HTTP 客户端连接或请求超时属于可重试错误；Worker 进程本身超时会进入 Laravel 的失败回调，收尾当前轮次的未完成尝试并标记 Delivery 为 `failed`。因此该策略仍是至少一次投递，端到端去重必须由外部目标按稳定的幂等键配合完成。
+
 #### 第一版不引入独立消息队列
 
 第一版不引入 Redis、RabbitMQ、Kafka 或 SQS 等独立消息队列，原因是当前首先要验证统一接入、持久化、重试和人工补推闭环，而不是提前解决尚未出现的吞吐瓶颈。
 
 当前实现使用 Laravel database queue：Delivery 与 `jobs` 写入同一个数据库事务，本质上是数据库持久化任务加后台 Worker，不增加第二个有状态基础设施。这样可以避免数据库保存成功、但向外部 MQ 发布失败的双写问题。
 
-它仍然是一种队列调度方式，但不是独立消息中间件。未来数据库轮询成为瓶颈后，再迁移 Redis 或 SQS，并通过 Transactional Outbox 解决数据库与消息队列之间的一致性问题。
+如果不使用 Laravel database queue，仍可保留 Delivery 持久化表并由自建轮询 Worker 领取到期记录；但需要自行实现并发领取、租约、崩溃恢复、退避调度和最终失败出口。同步 HTTP 转发不能等价替代已接受请求的可靠投递。当前复用框架队列以避免自研这部分可靠性机制。
+
+它仍然是一种队列调度方式，但不是独立消息中间件。未来数据库轮询成为瓶颈后，再迁移 Redis 或 SQS，并通过 Transactional Outbox 解决数据库与消息队列之间的一致性问题。同库原子写入依赖应用与 database queue 使用同一个数据库连接和事务边界配置。
 
 #### 未来如何演进
 
@@ -164,6 +173,69 @@ flowchart TD
 ├── routes/console.php                # 定时清理任务
 └── tests/Feature                     # API、可靠投递、持久化与清理测试
 ```
+
+### 2.1 本地运行与最小调用示例
+
+运行环境为 PHP 8.3+、Composer、Node.js/npm 和 PostgreSQL。项目提供的 `compose.yaml` 可启动本地 PostgreSQL：
+
+```bash
+docker compose up -d --wait postgres
+composer setup
+php artisan queue:work database --queue=notifications
+php artisan schedule:work
+```
+
+`composer setup` 会安装依赖、复制 `.env.example`、生成 `APP_KEY`、执行迁移并构建前端资源。已有 Delivery 或 Endpoint 加密字段时必须保留原 `APP_KEY`，不能通过重新生成密钥来重置环境。通知 Worker 和 scheduler 是独立进程；前者投递队列任务，后者执行过期记录和 Laravel failed job 的定时清理。
+
+先创建调用方、受控 Endpoint 并授权；静态 Header 在 Endpoint 命令的交互提示中以隐藏输入录入：
+
+```bash
+php artisan notifications:client-create orders
+php artisan notifications:endpoint-upsert inventory-primary \
+  --vendor=Inventory --url=https://inventory.example.test/stock \
+  --method=POST --timeout=10 --attempts=3 --allowed-header=x-correlation-id
+php artisan notifications:client-grant orders inventory-primary
+```
+
+创建调用方命令只显示一次明文 API Key。使用该 Key 提交通知：
+
+```bash
+curl -X POST http://localhost:8000/api/v1/deliveries \
+  -H 'X-API-Key: <client-api-key>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "endpoint_key": "inventory-primary",
+    "idempotency_key": "order-42-inventory-v1",
+    "payload": {"sku": "A-1", "delta": -1},
+    "content_type": "application/json",
+    "headers": {"X-Correlation-ID": "trace-42"}
+  }'
+```
+
+首次成功持久化返回 `202 Accepted` 和 `created: true`；相同调用方以相同幂等键提交相同内容时返回原 Delivery 与 `created: false`，不会新建 Job；相同幂等键但内容不同返回 `409 Conflict`。调用方只能使用已授权的活跃 Endpoint，未授权或已停用的目标返回 `404`。`payload` 与 `body_base64` 必须且只能提供一个：前者由服务 JSON 编码，后者用于原始二进制 Body。
+
+用返回的 `id` 查询状态；只有 `failed` 的 Delivery 可以人工补推：
+
+```bash
+curl -H 'X-API-Key: <client-api-key>' \
+  http://localhost:8000/api/v1/deliveries/<delivery-id>
+
+curl -X POST -H 'X-API-Key: <client-api-key>' \
+  http://localhost:8000/api/v1/deliveries/<delivery-id>/retry
+```
+
+当前只支持按 Delivery ID 查询摘要状态，不提供失败列表或尝试明细 API。保留期清理 Delivery 后会级联清理尝试记录；由于接入幂等记录也随之删除，系统不承诺跨保留期永久去重。
+
+### 2.2 测试
+
+```bash
+composer test
+composer test -- tests/Feature/DeliveryApiTest.php
+composer test -- --filter=DeliveryJobTest::test_exhausted_recovery_marks_pending_attempt_abandoned_without_calling_vendor
+vendor/bin/pint --test
+```
+
+`DeliveryApiTest` 覆盖鉴权、授权、请求校验、幂等、查询和人工补推；`DeliveryJobTest` 覆盖 HTTP 成功、可重试/永久失败、次数上限、旧任务和中断尝试；`QueuePersistenceTest` 覆盖同库任务入队和事务回滚；`PruneDeliveriesTest` 覆盖保留期清理。测试环境使用内存 SQLite、同步队列以及 HTTP/队列假件；队列持久化测试会针对该测试数据库显式使用 database queue。
 
 ## 3. AI 使用说明
 

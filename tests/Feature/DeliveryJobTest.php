@@ -11,6 +11,7 @@ use App\Models\Endpoint;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 use Tests\TestCase;
 
 class DeliveryJobTest extends TestCase
@@ -150,5 +151,76 @@ class DeliveryJobTest extends TestCase
 
         $outcomes = $this->delivery->attempts()->orderBy('attempt_number')->pluck('outcome')->all();
         $this->assertSame(['abandoned', 'delivered'], $outcomes);
+    }
+
+    public function test_exhausted_recovery_marks_pending_attempt_abandoned_without_calling_vendor(): void
+    {
+        $this->setUpContext();
+        $this->delivery->update(['status' => DeliveryStatus::Processing, 'attempts_count' => 3]);
+        DeliveryAttempt::query()->create([
+            'delivery_id' => $this->delivery->id,
+            'delivery_round' => 1,
+            'attempt_number' => 3,
+            'outcome' => 'processing',
+            'started_at' => now()->subMinute(),
+        ]);
+        Http::preventStrayRequests();
+        Http::fake();
+
+        $job = (new DeliverNotification($this->delivery->id, 1))->withFakeQueueInteractions();
+        $job->handle();
+
+        $this->assertSame(DeliveryStatus::Failed, $this->delivery->refresh()->status);
+        $this->assertSame('abandoned', $this->delivery->attempts()->first()->outcome);
+        $job->assertFailed();
+        Http::assertNothingSent();
+    }
+
+    public function test_failed_callback_abandons_the_current_processing_attempt(): void
+    {
+        $this->setUpContext();
+        $this->delivery->update(['status' => DeliveryStatus::Processing, 'attempts_count' => 1]);
+        $attempt = DeliveryAttempt::query()->create([
+            'delivery_id' => $this->delivery->id,
+            'delivery_round' => 1,
+            'attempt_number' => 1,
+            'outcome' => 'processing',
+            'started_at' => now()->subMinute(),
+        ]);
+
+        (new DeliverNotification($this->delivery->id, 1))->failed(new RuntimeException('Worker timed out.'));
+
+        $this->assertSame(DeliveryStatus::Failed, $this->delivery->refresh()->status);
+        $this->assertSame('abandoned', $attempt->refresh()->outcome);
+        $this->assertNotNull($attempt->finished_at);
+        $this->assertSame('RuntimeException: Worker timed out.', $attempt->error);
+    }
+
+    public function test_failed_callback_does_not_overwrite_a_newer_or_terminal_delivery(): void
+    {
+        $this->setUpContext();
+        $this->delivery->update([
+            'status' => DeliveryStatus::Processing,
+            'delivery_round' => 2,
+            'attempts_count' => 1,
+        ]);
+        $attempt = DeliveryAttempt::query()->create([
+            'delivery_id' => $this->delivery->id,
+            'delivery_round' => 2,
+            'attempt_number' => 1,
+            'outcome' => 'processing',
+            'started_at' => now(),
+        ]);
+
+        (new DeliverNotification($this->delivery->id, 1))->failed(new RuntimeException('Old worker failed.'));
+
+        $this->assertSame(DeliveryStatus::Processing, $this->delivery->refresh()->status);
+        $this->assertSame('processing', $attempt->refresh()->outcome);
+
+        $this->delivery->update(['status' => DeliveryStatus::Delivered, 'delivered_at' => now()]);
+        (new DeliverNotification($this->delivery->id, 2))->failed(new RuntimeException('Late worker failed.'));
+
+        $this->assertSame(DeliveryStatus::Delivered, $this->delivery->refresh()->status);
+        $this->assertSame('processing', $attempt->refresh()->outcome);
     }
 }

@@ -34,7 +34,13 @@ class DeliverNotification implements ShouldQueue
 
     public function handle(): void
     {
-        [$delivery, $attempt] = $this->beginAttempt();
+        [$delivery, $attempt, $failure] = $this->beginAttempt();
+
+        if ($failure) {
+            $this->fail(new RuntimeException($failure));
+
+            return;
+        }
 
         if (! $delivery || ! $attempt) {
             return;
@@ -71,30 +77,36 @@ class DeliverNotification implements ShouldQueue
         }
     }
 
-    /** @return array{0: Delivery|null, 1: DeliveryAttempt|null} */
+    /** @return array{0: Delivery|null, 1: DeliveryAttempt|null, 2: string|null} */
     private function beginAttempt(): array
     {
         return DB::transaction(function (): array {
             $delivery = Delivery::query()->with('endpoint')->lockForUpdate()->find($this->deliveryId);
 
             if (! $delivery || $delivery->delivery_round !== $this->deliveryRound) {
-                return [null, null];
+                return [null, null, null];
             }
 
             if (in_array($delivery->status, [DeliveryStatus::Delivered, DeliveryStatus::Failed], true)) {
-                return [null, null];
+                return [null, null, null];
+            }
+
+            $this->abandonProcessingAttempts($delivery, 'Worker stopped before recording the result.');
+
+            if ($delivery->attempts_count >= $delivery->endpoint->max_attempts) {
+                $error = 'Maximum delivery attempts reached before recording a result.';
+
+                $delivery->forceFill([
+                    'status' => DeliveryStatus::Failed,
+                    'last_error' => $error,
+                    'next_attempt_at' => null,
+                    'failed_at' => now(),
+                ])->save();
+
+                return [null, null, $error];
             }
 
             $attemptNumber = $delivery->attempts_count + 1;
-            DeliveryAttempt::query()
-                ->where('delivery_id', $delivery->id)
-                ->where('delivery_round', $delivery->delivery_round)
-                ->where('outcome', 'processing')
-                ->update([
-                    'outcome' => 'abandoned',
-                    'error' => 'Worker stopped before recording the result.',
-                    'finished_at' => now(),
-                ]);
 
             $delivery->forceFill([
                 'status' => DeliveryStatus::Processing,
@@ -110,7 +122,7 @@ class DeliverNotification implements ShouldQueue
                 'started_at' => now(),
             ]);
 
-            return [$delivery, $attempt];
+            return [$delivery, $attempt, null];
         }, 3);
     }
 
@@ -186,6 +198,19 @@ class DeliverNotification implements ShouldQueue
         ])->save();
     }
 
+    private function abandonProcessingAttempts(Delivery $delivery, string $error): void
+    {
+        DeliveryAttempt::query()
+            ->where('delivery_id', $delivery->id)
+            ->where('delivery_round', $delivery->delivery_round)
+            ->where('outcome', 'processing')
+            ->update([
+                'outcome' => 'abandoned',
+                'error' => $error,
+                'finished_at' => now(),
+            ]);
+    }
+
     private function retryDelay(Delivery $delivery, int $attempt): int
     {
         $schedule = $delivery->endpoint->backoff_seconds ?: [5, 30, 120, 600, 1800, 3600];
@@ -213,16 +238,23 @@ class DeliverNotification implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        Delivery::query()
-            ->whereKey($this->deliveryId)
-            ->where('delivery_round', $this->deliveryRound)
-            ->whereNotIn('status', [DeliveryStatus::Delivered->value, DeliveryStatus::Failed->value])
-            ->update([
+        DB::transaction(function () use ($exception): void {
+            $delivery = Delivery::query()->lockForUpdate()->find($this->deliveryId);
+
+            if (! $delivery || $delivery->delivery_round !== $this->deliveryRound
+                || in_array($delivery->status, [DeliveryStatus::Delivered, DeliveryStatus::Failed], true)) {
+                return;
+            }
+
+            $error = $exception ? $this->safeError($exception) : 'Queue job failed.';
+            $this->abandonProcessingAttempts($delivery, $error);
+
+            $delivery->forceFill([
                 'status' => DeliveryStatus::Failed->value,
-                'last_error' => $exception ? $this->safeError($exception) : 'Queue job failed.',
+                'last_error' => $error,
                 'next_attempt_at' => null,
                 'failed_at' => now(),
-                'updated_at' => now(),
-            ]);
+            ])->save();
+        }, 3);
     }
 }
